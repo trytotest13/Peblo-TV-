@@ -8,12 +8,27 @@ const LANGUAGES = ['en', 'hi']
 
 export default function Home() {
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [activeSection, setActiveSection] = useState('')
   const [activeLang, setActiveLang] = useState('')
   const [activeCat, setActiveCat] = useState('')
   const [scrolled, setScrolled] = useState(false)
   const topbarRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Debounce search so we don't fire a request on every keystroke
+  const handleSearchChange = (val: string) => {
+    setSearch(val)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => setDebouncedSearch(val), 400)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50)
@@ -23,11 +38,11 @@ export default function Home() {
 
   // Use search query when active, otherwise use the full catalog
   const { data: catalog, isLoading } = useQuery({
-    queryKey: ['catalog', search],
+    queryKey: ['catalog', debouncedSearch],
     queryFn: () =>
-      search
+      debouncedSearch
         ? searchCatalog({
-            q: search,
+            q: debouncedSearch,
             section: activeSection || undefined,
             category: activeCat || undefined,
             language: activeLang || undefined,
@@ -59,9 +74,10 @@ export default function Home() {
     setActiveLang('')
     setActiveCat('')
     setSearch('')
+    setDebouncedSearch('')
   }
 
-  const hasFilters = search || activeSection || activeLang || activeCat
+  const hasFilters = debouncedSearch || activeSection || activeLang || activeCat
 
   return (
     <div>
@@ -76,8 +92,8 @@ export default function Home() {
           <input
             placeholder="Search shows, episodes..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && setSearch(search)}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearchChange(search)}
           />
         </div>
       </div>
@@ -181,7 +197,7 @@ export default function Home() {
         /* Single combined row for filtered view */
         <div className="section-row">
           <div className="section-title">
-            {search ? `Results for "${search}"` : 'Shows'}
+            {debouncedSearch ? `Results for "${debouncedSearch}"` : 'Shows'}
             {activeSection && ` — ${activeSection}`}
             {activeLang && ` — ${activeLang}`}
           </div>

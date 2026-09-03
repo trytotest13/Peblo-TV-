@@ -300,11 +300,20 @@ a:hover {
 .artwork-slot.has-image {
   border-style: solid;
 }
+.artwork-slot.has-error {
+  border-color: var(--color-danger);
+}
 .artwork-slot img {
   width: 100%;
-  aspect-ratio: 2/3;
   object-fit: cover;
   border-radius: 4px;
+}
+.artwork-slot img.poster {
+  aspect-ratio: 2/3;
+}
+.artwork-slot img.banner,
+.artwork-slot img.thumbnail {
+  aspect-ratio: 16/9;
 }
 .artwork-slot-label {
   font-size: 12px;
@@ -315,6 +324,11 @@ a:hover {
 .artwork-slot-spec {
   font-size: 11px;
   color: #adb5bd;
+}
+.artwork-slot-preview-info {
+  font-size: 11px;
+  color: var(--color-muted);
+  margin-top: 4px;
 }
 
 .publish-card {

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
 
 interface ArtworkSpec {
@@ -18,7 +18,9 @@ interface Props {
 
 export default function ArtworkSlot({ showId, episodeId, artworkType, spec, current }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
+  const queryClient = useQueryClient()
   const [preview, setPreview] = useState<string | null>(null)
+  const [previewDims, setPreviewDims] = useState<{ w: number; h: number } | null>(null)
   const [errors, setErrors] = useState<string[]>([])
 
   const upload = useMutation({
@@ -32,8 +34,10 @@ export default function ArtworkSlot({ showId, episodeId, artworkType, spec, curr
     },
     onSuccess: () => {
       setErrors([])
-      // In a real app, invalidate the show query here
-      window.location.reload()
+      setPreview(null)
+      setPreviewDims(null)
+      if (showId) queryClient.invalidateQueries({ queryKey: ['show', showId] })
+      if (episodeId) queryClient.invalidateQueries({ queryKey: ['episodes'] })
     },
     onError: (err) => {
       setErrors([(err as Error).message])
@@ -43,7 +47,15 @@ export default function ArtworkSlot({ showId, episodeId, artworkType, spec, curr
   const onSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    setPreview(URL.createObjectURL(file))
+
+    // Pre-flight: read dimensions so editor can see what they're uploading
+    const url = URL.createObjectURL(file)
+    const img = new Image()
+    img.onload = () => {
+      setPreviewDims({ w: img.naturalWidth, h: img.naturalHeight })
+    }
+    img.src = url
+    setPreview(url)
     setErrors([])
     upload.mutate(file)
   }
@@ -55,11 +67,11 @@ export default function ArtworkSlot({ showId, episodeId, artworkType, spec, curr
 
   return (
     <div
-      className={`artwork-slot ${hasImage ? 'has-image' : ''}`}
+      className={`artwork-slot ${hasImage ? 'has-image' : ''} ${errors.length > 0 ? 'has-error' : ''}`}
       onClick={() => fileRef.current?.click()}
     >
       {imageUrl ? (
-        <img src={imageUrl} alt={artworkType} />
+        <img src={imageUrl} alt={artworkType} className={artworkType} />
       ) : (
         <div
           style={{
@@ -77,6 +89,11 @@ export default function ArtworkSlot({ showId, episodeId, artworkType, spec, curr
       <div className="artwork-slot-spec">
         {spec.aspect} · {spec.px} · max {spec.maxKB}KB
       </div>
+      {previewDims && upload.isPending && (
+        <div className="artwork-slot-preview-info">
+          Detected: {previewDims.w}×{previewDims.h}px
+        </div>
+      )}
       {errors.map((err, i) => (
         <div key={i} className="form-error" style={{ marginTop: 6 }}>
           {err}

@@ -3,19 +3,16 @@ import json
 import os
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.deps import get_current_user, require_admin
+from app.auth.deps import require_admin
 from app.config import get_settings
 from app.db import get_db
 from app.models.publish_run import PublishRun
 from app.models.user import User
 from app.schemas.catalog import (
-    CatalogDocument,
-    CatalogSearchParams,
     PublishRunRead,
 )
 from app.services.catalog import build_catalog
@@ -73,6 +70,11 @@ async def search_catalog(
             if q_lower in s.title.lower()
             or (s.synopsis and q_lower in s.synopsis.lower())
             or any(q_lower in c.lower() for c in s.categories)
+            or any(
+                q_lower in ep.title.lower()
+                for season in s.seasons
+                for ep in season.episodes
+            )
         ]
 
     if section:
@@ -85,9 +87,8 @@ async def search_catalog(
         results = [
             s for s in results
             if any(
-                language in ep.language
+                language in {lv.language for ep in season.episodes for lv in ep.languages}
                 for season in s.seasons
-                for ep in season.episodes
             )
         ]
 

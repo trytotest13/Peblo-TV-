@@ -4,7 +4,6 @@ Strategy: We replace `app.db.async_engine` and `AsyncSessionLocal` with
 per-test in-memory engines. Because the app imports `get_db` at request
 time, this swap is enough to redirect all queries to the test DB.
 """
-import asyncio
 import os
 import sys
 from pathlib import Path
@@ -18,7 +17,6 @@ os.environ.setdefault("JWT_SECRET", "test-secret")
 # Make backend/ importable
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.pool import StaticPool
@@ -30,13 +28,6 @@ import app.models.episode  # noqa
 import app.models.artwork  # noqa
 import app.models.publish_run  # noqa
 import app.models.user  # noqa
-
-
-@pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
 
 
 @pytest_asyncio.fixture
@@ -52,7 +43,6 @@ async def test_engine():
 
     # Patch the app to use this engine
     import app.db as appdb
-    from app.db import AsyncSessionLocal
     saved_engine = appdb.async_engine
     saved_session = appdb.AsyncSessionLocal
     appdb.async_engine = engine

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
@@ -9,18 +9,29 @@ const PAGE_SIZE = 20
 export default function ShowsList() {
   const [page, setPage] = useState(0)
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [section, setSection] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [showForm, setShowForm] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Debounce search input by 300ms so we don't fire a request on every keystroke
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => setDebouncedSearch(search), 300)
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [search])
 
   const queryClient = useQueryClient()
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['shows', page, search, section, statusFilter],
+  const { data, isLoading, error, isFetching } = useQuery({
+    queryKey: ['shows', page, debouncedSearch, section, statusFilter],
     queryFn: () =>
       api.listShows({
         skip: page * PAGE_SIZE,
         limit: PAGE_SIZE,
-        ...(search && { search }),
+        ...(debouncedSearch && { search: debouncedSearch }),
         ...(section && { section }),
         ...(statusFilter && { status: statusFilter }),
       }),
@@ -61,6 +72,9 @@ export default function ShowsList() {
             }}
             style={{ flex: 1 }}
           />
+          {isFetching && !isLoading && (
+            <span style={{ color: 'var(--color-muted)', fontSize: 12 }}>Searching...</span>
+          )}
           <select
             className="form-select"
             value={section}

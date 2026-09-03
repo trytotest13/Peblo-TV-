@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 
@@ -6,15 +6,25 @@ const LANGUAGES = ['en', 'hi']
 
 export default function EpisodesList() {
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [language, setLanguage] = useState('')
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['episodes', search, statusFilter, language],
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => setDebouncedSearch(search), 300)
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [search])
+
+  const { data, isLoading, error, isFetching } = useQuery({
+    queryKey: ['episodes', debouncedSearch, statusFilter, language],
     queryFn: () =>
       api.listEpisodes({
         limit: 200,
-        ...(search && { search }),
+        ...(debouncedSearch && { search: debouncedSearch }),
         ...(statusFilter && { status: statusFilter }),
         ...(language && { language }),
       }),
@@ -39,6 +49,9 @@ export default function EpisodesList() {
             onChange={(e) => setSearch(e.target.value)}
             style={{ flex: 1 }}
           />
+          {isFetching && !isLoading && (
+            <span style={{ color: 'var(--color-muted)', fontSize: 12 }}>Searching...</span>
+          )}
           <select
             className="form-select"
             value={statusFilter}

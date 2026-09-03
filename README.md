@@ -107,7 +107,7 @@ cd backend
 pytest -v
 ```
 
-26 tests cover: authentication, artwork validation, catalog building, validation reports, and smoke tests.
+31 tests cover: authentication, artwork validation, catalog building, validation reports, search, and smoke tests.
 
 ## Environment variables
 
@@ -156,8 +156,29 @@ See `docs/DECISIONS.md` (Part E of the challenge).
 
 `.github/workflows/ci.yml` runs:
 
-1. Backend lint + tests (with Postgres service container)
-2. Docker image builds (deploy step is scaffolded but commented — see file)
+1. Backend lint (ruff) + tests (31 tests with Postgres service container)
+2. CMS lint + format check + build
+3. Viewer lint + format check + build
+4. Docker image builds (deploy step is scaffolded but commented — see file)
+
+### Secrets management
+
+In production, all secrets should live in your platform's secret manager, never in the repo:
+
+- **GitHub Actions**: Store secrets in repo Settings → Secrets. They are injected as environment variables during CI runs and masked in logs.
+- **AWS**: Use AWS Secrets Manager or SSM Parameter Store (SecureString). In ECS/Kubernetes, attach an IAM role to the task/pod so the application retrieves secrets at startup via the AWS SDK — never bake them into images.
+- **Cloudflare R2**: Access keys go in the same secret manager; the application reads them as env vars.
+- **Local dev**: Copy `.env.example` → `.env` and fill in values. Never commit `.env`.
+
+The one thing worth alerting on beyond basic liveness: **publish failure rate**. Every `POST /catalog/publish` that results in `outcome=failed` should trigger an alert (PagerDuty, Slack, etc.) — it means editors can't ship new content. Track this via the `/catalog/publish-runs` history or by instrumenting the 500 error path.
+
+## Health endpoint
+
+`GET /health` returns `{"status": "ok"}`. Suitable for load-balancer health checks and container restart policies.
+
+## Testing
+
+31 tests cover: authentication, artwork validation, catalog building, validation reports, search, and smoke tests.
 
 ## Phase 1 Time Breakdown
 
@@ -165,7 +186,7 @@ See `docs/DECISIONS.md` (Part E of the challenge).
 |---|---|
 | Git init + first commit | ~15 min |
 | Artwork seeding | ~10 min |
-| Backend tests (26 tests) | ~15 min |
+| Backend tests (31 tests) | ~15 min |
 | ESLint + Prettier (CMS + Viewer) | ~10 min |
 | README documentation | ~10 min |
 | **Total Phase 1** | **~1.5 hours** |

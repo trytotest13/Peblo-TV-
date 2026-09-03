@@ -3,7 +3,12 @@ import { api } from '../lib/api'
 
 export default function Publish() {
   const queryClient = useQueryClient()
-  const { data: report, isLoading } = useQuery({
+  const {
+    data: report,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ['validation-report'],
     queryFn: api.getValidationReport,
   })
@@ -16,10 +21,32 @@ export default function Publish() {
     mutationFn: api.publishCatalog,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['publish-runs'] })
+      queryClient.invalidateQueries({ queryKey: ['validation-report'] })
     },
   })
 
-  if (isLoading) return <div>Loading validation report...</div>
+  if (isLoading) {
+    return (
+      <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-muted)' }}>
+        Loading validation report...
+      </div>
+    )
+  }
+
+  if (error) {
+    const msg = (error as Error).message
+    const isPermission = msg.toLowerCase().includes('unauthor') || msg.includes('403')
+    return (
+      <div className="alert alert-error" style={{ maxWidth: 600 }}>
+        {isPermission
+          ? "You don't have permission to view the publish report. Ask an admin for access."
+          : `Couldn't load validation report: ${msg}`}
+        <button className="btn" style={{ marginTop: 8 }} onClick={() => refetch()}>
+          Retry
+        </button>
+      </div>
+    )
+  }
 
   const canPublish = report?.can_publish
   const groupedByShow: Record<string, any[]> = {}
