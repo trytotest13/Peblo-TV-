@@ -1,9 +1,7 @@
 """Artwork schemas."""
 from uuid import UUID
 
-from pydantic import BaseModel, Field
-
-from app.schemas import ARTWORK_TYPES
+from pydantic import BaseModel
 
 
 class ArtworkRead(BaseModel):

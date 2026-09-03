@@ -7,22 +7,21 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import get_settings
-from app.db import AsyncSessionLocal, Base, async_engine
-from app.models.user import User
-from app.auth.security import hash_password
-from app.routers import auth, shows, seasons, episodes, artwork, catalog, admin
+import app.models.artwork  # noqa: F401
+import app.models.audit_log  # noqa: F401
+import app.models.episode  # noqa: F401
+import app.models.publish_run  # noqa: F401
+import app.models.season  # noqa: F401
 
 # Import models so Base.metadata sees them when we run create_all
 import app.models.show  # noqa: F401
-import app.models.season  # noqa: F401
-import app.models.episode  # noqa: F401
-import app.models.artwork  # noqa: F401
-import app.models.publish_run  # noqa: F401
 import app.models.user  # noqa: F401
-import app.models.audit_log  # noqa: F401
+from app.auth.security import hash_password
+from app.config import get_settings
+from app.db import AsyncSessionLocal, Base, async_engine
+from app.models.user import User
+from app.routers import admin, artwork, auth, catalog, episodes, seasons, shows
 
 settings = get_settings()
 logging.basicConfig(level=settings.log_level)

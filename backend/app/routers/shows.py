@@ -4,13 +4,10 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.auth.deps import get_current_user, require_editor
-from app.db import get_db
+from app.auth.deps import CurrentUser, DbSession, require_editor
 from app.models.show import Show
-from app.models.user import User
 from app.schemas.show import ShowCreate, ShowRead, ShowUpdate, ShowWithArtworkRead
 from app.services.audit import log_change
 
@@ -19,13 +16,13 @@ router = APIRouter(prefix="/shows", tags=["shows"])
 
 @router.get("", response_model=list[ShowRead])
 async def list_shows(
+    db: DbSession,
+    _user: CurrentUser,
     section: str | None = None,
     status_filter: str | None = Query(None, alias="status"),
     search: str | None = None,
     skip: int = 0,
     limit: int = 50,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
 ):
     """List all shows with optional filtering."""
     stmt = select(Show).offset(skip).limit(limit)
@@ -42,8 +39,8 @@ async def list_shows(
 @router.get("/{show_id}", response_model=ShowWithArtworkRead)
 async def get_show(
     show_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    db: DbSession,
+    _user: CurrentUser,
 ):
     stmt = (
         select(Show)
@@ -60,17 +57,26 @@ async def get_show(
 @router.post("", response_model=ShowRead, status_code=status.HTTP_201_CREATED)
 async def create_show(
     body: ShowCreate,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_editor),
+    db: DbSession,
+    user: Annotated[object, Depends(require_editor)],
 ):
     existing = await db.execute(select(Show).where(Show.slug == body.slug))
     if existing.scalar_one_or_none():
-        raise HTTPException(status_code=409, detail=f"Show with slug '{body.slug}' already exists")
+        raise HTTPException(
+            status_code=409, detail=f"Show with slug '{body.slug}' already exists"
+        )
 
     show = Show(**body.model_dump())
     db.add(show)
     await db.flush()
-    await log_change(db, user.email, "show", str(show.id), "created", after=ShowRead.model_validate(show).model_dump())
+    await log_change(
+        db,
+        user.email,
+        "show",
+        str(show.id),
+        "created",
+        after=ShowRead.model_validate(show).model_dump(),
+    )
     await db.commit()
     await db.refresh(show)
     return ShowRead.model_validate(show)
@@ -80,8 +86,8 @@ async def create_show(
 async def update_show(
     show_id: UUID,
     body: ShowUpdate,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_editor),
+    db: DbSession,
+    user: Annotated[object, Depends(require_editor)],
 ):
     result = await db.execute(select(Show).where(Show.id == show_id))
     show = result.scalar_one_or_none()
@@ -92,7 +98,15 @@ async def update_show(
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(show, key, value)
     await db.flush()
-    await log_change(db, user.email, "show", str(show.id), "updated", before=before, after=ShowRead.model_validate(show).model_dump())
+    await log_change(
+        db,
+        user.email,
+        "show",
+        str(show.id),
+        "updated",
+        before=before,
+        after=ShowRead.model_validate(show).model_dump(),
+    )
     await db.commit()
     await db.refresh(show)
     return ShowRead.model_validate(show)
@@ -101,8 +115,8 @@ async def update_show(
 @router.delete("/{show_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_show(
     show_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_editor),
+    db: DbSession,
+    user: Annotated[object, Depends(require_editor)],
 ):
     result = await db.execute(select(Show).where(Show.id == show_id))
     show = result.scalar_one_or_none()

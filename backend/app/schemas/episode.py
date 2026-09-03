@@ -45,6 +45,6 @@ class EpisodeWithArtworkRead(EpisodeRead):
     artwork: list["ArtworkRead"] = []
 
 
-from app.schemas.artwork import ArtworkRead
+from app.schemas.artwork import ArtworkRead  # noqa: E402
 
 EpisodeWithArtworkRead.model_rebuild()

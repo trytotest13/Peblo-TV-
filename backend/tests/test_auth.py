@@ -2,8 +2,8 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from app.auth.security import create_access_token, hash_password
 from app.main import app
-from app.auth.security import hash_password, create_access_token
 
 
 @pytest.fixture
@@ -30,7 +30,6 @@ async def test_shows_endpoint_requires_auth(client):
 async def test_publish_requires_admin(client, db_session):
     """Editor role should NOT be able to publish — only admin."""
     from app.models.user import User
-    from app.auth.security import hash_password
 
     # Create an editor user in the test DB
     editor = User(

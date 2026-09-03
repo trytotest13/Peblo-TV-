@@ -4,7 +4,7 @@ Verifies that q matches show title, episode title, and category,
 and that filters compose correctly.
 """
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 
 from app.main import app
 from app.models.episode import Episode

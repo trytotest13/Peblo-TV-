@@ -5,7 +5,6 @@ and two language variants of the same episode (sharing content_group).
 The builder should collapse them into one catalogue entry.
 """
 import pytest
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.episode import Episode
@@ -67,7 +66,7 @@ async def test_content_group_collapses_into_one_entry(db_session: AsyncSession):
 
     ep = season_entry.episodes[0]
     assert len(ep.languages) == 2
-    langs = {l.language for l in ep.languages}
+    langs = {lv.language for lv in ep.languages}
     assert langs == {"en", "hi"}
 
 

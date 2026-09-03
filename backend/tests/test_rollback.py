@@ -1,14 +1,15 @@
 """Tests for versioned catalogue + rollback + diff (stretch goals)."""
 import os
-import pytest
-from httpx import AsyncClient, ASGITransport
 
+import pytest
+from httpx import ASGITransport, AsyncClient
+
+from app.config import get_settings
 from app.main import app
 from app.models.episode import Episode
+from app.models.publish_run import PublishRun
 from app.models.season import Season
 from app.models.show import Show
-from app.models.publish_run import PublishRun
-from app.config import get_settings
 
 
 async def _publish_once(db_session):
@@ -43,8 +44,8 @@ async def _publish_once(db_session):
     await db_session.commit()
 
     # Create admin user
-    from app.models.user import User
     from app.auth.security import hash_password
+    from app.models.user import User
 
     admin_user = User(
         email="rollback-admin@peblo.local",

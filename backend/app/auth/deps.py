@@ -1,4 +1,10 @@
-"""FastAPI auth dependencies."""
+"""FastAPI auth dependencies.
+
+We use the `Annotated[X, Depends(...)]` pattern so ruff B008 (function-call-in-default)
+stays happy and FastAPI still gets the dependency graph.
+"""
+from typing import Annotated
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
@@ -9,11 +15,13 @@ from app.db import get_db
 from app.models.user import User
 
 security = HTTPBearer()
+DbSession = Annotated[AsyncSession, Depends(get_db)]
+BearerCreds = Annotated[HTTPAuthorizationCredentials, Depends(security)]
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: AsyncSession = Depends(get_db),
+    credentials: BearerCreds,
+    db: DbSession,
 ) -> User:
     """Return the current authenticated user, or raise 401."""
     token = credentials.credentials
@@ -33,15 +41,20 @@ async def get_current_user(
     return user
 
 
+CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
 def require_role(*roles: str):
     """Dependency factory: require the user to have one of the given roles."""
-    async def checker(user: User = Depends(get_current_user)) -> User:
+
+    async def checker(user: CurrentUser) -> User:
         if user.role not in roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Requires one of: {roles}",
             )
         return user
+
     return checker
 
 

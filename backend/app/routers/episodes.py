@@ -1,16 +1,13 @@
 """Episode CRUD endpoints."""
-import uuid
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, and_
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import and_, select
 
-from app.auth.deps import get_current_user, require_editor
-from app.db import get_db
+from app.auth.deps import CurrentUser, DbSession, require_editor
 from app.models.episode import Episode
 from app.models.season import Season
-from app.models.user import User
 from app.schemas.episode import EpisodeCreate, EpisodeRead, EpisodeUpdate
 from app.services.audit import log_change
 
@@ -19,14 +16,14 @@ router = APIRouter(prefix="/episodes", tags=["episodes"])
 
 @router.get("", response_model=list[EpisodeRead])
 async def list_episodes(
+    db: DbSession,
+    _user: CurrentUser,
     season_id: str | None = None,
     status_filter: str | None = Query(None, alias="status"),
     language: str | None = None,
     search: str | None = None,
     skip: int = 0,
     limit: int = 100,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
 ):
     """List episodes with optional filtering."""
     stmt = select(Episode).offset(skip).limit(limit)
@@ -38,15 +35,17 @@ async def list_episodes(
         stmt = stmt.where(Episode.language == language)
     if search:
         stmt = stmt.where(Episode.title.ilike(f"%{search}%"))
-    result = await db.execute(stmt.order_by(Episode.season_id, Episode.episode_number))
+    result = await db.execute(
+        stmt.order_by(Episode.season_id, Episode.episode_number)
+    )
     return [EpisodeRead.model_validate(e) for e in result.scalars().all()]
 
 
 @router.get("/{episode_id}", response_model=EpisodeRead)
 async def get_episode(
     episode_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    db: DbSession,
+    _user: CurrentUser,
 ):
     result = await db.execute(select(Episode).where(Episode.id == episode_id))
     episode = result.scalar_one_or_none()
@@ -58,11 +57,13 @@ async def get_episode(
 @router.post("", response_model=EpisodeRead, status_code=status.HTTP_201_CREATED)
 async def create_episode(
     body: EpisodeCreate,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_editor),
+    db: DbSession,
+    user: Annotated[object, Depends(require_editor)],
 ):
     # Verify season exists
-    season_result = await db.execute(select(Season).where(Season.id == body.season_id))
+    season_result = await db.execute(
+        select(Season).where(Season.id == body.season_id)
+    )
     if not season_result.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Season not found")
 
@@ -87,7 +88,14 @@ async def create_episode(
     episode = Episode(**body.model_dump())
     db.add(episode)
     await db.flush()
-    await log_change(db, user.email, "episode", str(episode.id), "created", after=EpisodeRead.model_validate(episode).model_dump())
+    await log_change(
+        db,
+        user.email,
+        "episode",
+        str(episode.id),
+        "created",
+        after=EpisodeRead.model_validate(episode).model_dump(),
+    )
     await db.commit()
     await db.refresh(episode)
     return EpisodeRead.model_validate(episode)
@@ -97,8 +105,8 @@ async def create_episode(
 async def update_episode(
     episode_id: UUID,
     body: EpisodeUpdate,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_editor),
+    db: DbSession,
+    user: Annotated[object, Depends(require_editor)],
 ):
     result = await db.execute(select(Episode).where(Episode.id == episode_id))
     episode = result.scalar_one_or_none()
@@ -109,7 +117,15 @@ async def update_episode(
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(episode, key, value)
     await db.flush()
-    await log_change(db, user.email, "episode", str(episode.id), "updated", before=before, after=EpisodeRead.model_validate(episode).model_dump())
+    await log_change(
+        db,
+        user.email,
+        "episode",
+        str(episode.id),
+        "updated",
+        before=before,
+        after=EpisodeRead.model_validate(episode).model_dump(),
+    )
     await db.commit()
     await db.refresh(episode)
     return EpisodeRead.model_validate(episode)
@@ -118,14 +134,16 @@ async def update_episode(
 @router.delete("/{episode_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_episode(
     episode_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_editor),
+    db: DbSession,
+    user: Annotated[object, Depends(require_editor)],
 ):
     result = await db.execute(select(Episode).where(Episode.id == episode_id))
     episode = result.scalar_one_or_none()
     if not episode:
         raise HTTPException(status_code=404, detail="Episode not found")
     before = EpisodeRead.model_validate(episode).model_dump()
-    await log_change(db, user.email, "episode", str(episode.id), "deleted", before=before)
+    await log_change(
+        db, user.email, "episode", str(episode.id), "deleted", before=before
+    )
     await db.delete(episode)
     await db.commit()

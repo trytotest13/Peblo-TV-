@@ -6,7 +6,6 @@ runtime knobs (DB URL, JWT secret, storage backend choice, etc.).
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 

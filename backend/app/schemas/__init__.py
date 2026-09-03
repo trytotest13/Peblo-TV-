@@ -1,10 +1,11 @@
 """Shared enums and constants used across schemas."""
 from typing import Literal
 
+from app.models.artwork import ARTWORK_TYPES
+from app.models.episode import ALLOWED_LANGUAGES
+
 # Re-export raw tuples for any code that uses them as plain data
 from app.models.show import ALLOWED_CATEGORIES, ALLOWED_SECTIONS
-from app.models.episode import ALLOWED_LANGUAGES
-from app.models.artwork import ARTWORK_TYPES
 
 # Literal types for Pydantic annotations
 ALLOWED_SECTIONS_TYPE = Literal["featured", "series", "minisodes", "songs"]

@@ -1,12 +1,12 @@
 """Tests for the audit log (stretch goal)."""
-import pytest
-from uuid import UUID
-from httpx import AsyncClient, ASGITransport
 
+import pytest
+from httpx import ASGITransport, AsyncClient
+
+from app.auth.security import create_access_token, hash_password
 from app.main import app
 from app.models.audit_log import AuditLog
 from app.models.user import User
-from app.auth.security import create_access_token, hash_password
 
 
 async def _make_admin(db_session) -> str:
@@ -24,8 +24,6 @@ async def _make_admin(db_session) -> str:
 @pytest.mark.asyncio
 async def test_create_show_writes_audit_log(db_session):
     """Creating a show should write one 'created' audit log entry."""
-    from app.schemas.show import ShowCreate
-    from uuid import uuid4
 
     token = await _make_admin(db_session)
     body = {
@@ -58,7 +56,6 @@ async def test_create_show_writes_audit_log(db_session):
 @pytest.mark.asyncio
 async def test_update_show_writes_audit_with_before_after(db_session):
     """Updating should record the before/after snapshots."""
-    from app.schemas.show import ShowCreate, ShowUpdate
     from sqlalchemy import select
 
     token = await _make_admin(db_session)
@@ -129,8 +126,6 @@ async def test_delete_show_writes_audit_log(db_session):
 @pytest.mark.asyncio
 async def test_audit_log_endpoint_returns_entries(db_session):
     """The /admin/audit-log endpoint should list entries."""
-    from app.schemas.show import ShowCreate
-    from sqlalchemy import select
 
     token = await _make_admin(db_session)
     body = {
@@ -159,7 +154,6 @@ async def test_audit_log_endpoint_returns_entries(db_session):
 @pytest.mark.asyncio
 async def test_audit_log_filters_by_entity_type(db_session):
     """The endpoint should accept an entity_type filter."""
-    from app.schemas.show import ShowCreate, ShowUpdate
 
     token = await _make_admin(db_session)
     body = {
@@ -171,7 +165,7 @@ async def test_audit_log_filters_by_entity_type(db_session):
     }
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         r = await ac.post("/shows", headers={"Authorization": f"Bearer {token}"}, json=body)
-    show_id = r.json()["id"]
+    assert r.status_code == 201
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         r = await ac.get(

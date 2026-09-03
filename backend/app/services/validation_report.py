@@ -7,12 +7,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.artwork import Artwork
 from app.models.episode import Episode
 from app.models.season import Season
 from app.models.show import Show
-from app.schemas.catalog import ValidationIssue, ValidationReport
 from app.schemas import ARTWORK_TYPES
+from app.schemas.catalog import ValidationIssue, ValidationReport
 
 
 async def build_validation_report(db: AsyncSession) -> ValidationReport:

@@ -2,7 +2,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, JSON, String, func
+from sqlalchemy import JSON, DateTime, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -62,5 +62,5 @@ class Show(Base):
 
 
 # Avoid circular imports at module load
-from app.models.season import Season  # noqa: E402, F401
 from app.models.artwork import Artwork  # noqa: E402, F401
+from app.models.season import Season  # noqa: E402, F401

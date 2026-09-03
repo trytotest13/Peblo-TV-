@@ -1,6 +1,6 @@
 """Audit log — tracks who changed what and when."""
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import CHAR, DateTime, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column

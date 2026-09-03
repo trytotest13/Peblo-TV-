@@ -28,6 +28,6 @@ class SeasonWithEpisodesRead(SeasonRead):
     episodes: list["EpisodeRead"] = []
 
 
-from app.schemas.episode import EpisodeRead
+from app.schemas.episode import EpisodeRead  # noqa: E402
 
 SeasonWithEpisodesRead.model_rebuild()

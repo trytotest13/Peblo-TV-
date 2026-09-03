@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.schemas import ALLOWED_SECTIONS_TYPE, ALLOWED_CATEGORIES_TYPE
+from app.schemas import ALLOWED_CATEGORIES_TYPE, ALLOWED_SECTIONS_TYPE
 
 
 class ShowCreate(BaseModel):
@@ -44,8 +44,8 @@ class ShowWithArtworkRead(ShowRead):
     seasons: list["SeasonWithEpisodesRead"] = []
 
 
-from app.schemas.season import SeasonWithEpisodesRead
-from app.schemas.artwork import ArtworkRead
+from app.schemas.artwork import ArtworkRead  # noqa: E402
+from app.schemas.season import SeasonWithEpisodesRead  # noqa: E402
 
 ShowWithSeasonsRead.model_rebuild()
 ShowWithArtworkRead.model_rebuild()

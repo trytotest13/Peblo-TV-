@@ -4,8 +4,6 @@ from dataclasses import dataclass
 
 from PIL import Image
 
-from app.schemas import ARTWORK_TYPES
-
 ARTWORK_SPECS = {
     "poster": {
         "aspect": (2, 3),

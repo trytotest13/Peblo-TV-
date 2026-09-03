@@ -35,5 +35,5 @@ class Season(Base):
 
 
 # Avoid circular imports at module load
-from app.models.show import Show  # noqa: E402, F401
 from app.models.episode import Episode  # noqa: E402, F401
+from app.models.show import Show  # noqa: E402, F401

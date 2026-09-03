@@ -5,9 +5,9 @@ We use SQLite for speed — Postgres-specific features (UUID, ARRAY) are
 mocked at the model layer.
 """
 import os
-import pytest
-from httpx import AsyncClient, ASGITransport
 
+import pytest
+from httpx import ASGITransport, AsyncClient
 
 # Force settings before importing app
 os.environ.setdefault("APP_ENV", "test")

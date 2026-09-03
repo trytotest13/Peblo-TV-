@@ -5,12 +5,10 @@ don't match the spec from reference.json. We test each of the three
 artwork types with valid, oversized, and wrong-aspect files.
 """
 import io
-import struct
 
-import pytest
 from PIL import Image
 
-from app.services.validation import validate_artwork, ARTWORK_SPECS
+from app.services.validation import validate_artwork
 
 
 def make_jpeg(width: int, height: int, size_kb: int | None = None) -> bytes:

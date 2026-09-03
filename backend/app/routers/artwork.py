@@ -1,19 +1,17 @@
 """Artwork upload endpoint with validation."""
 import uuid
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.deps import require_editor
-from app.db import get_db
+from app.auth.deps import DbSession, require_editor
 from app.models.artwork import Artwork
 from app.models.episode import Episode
 from app.models.show import Show
-from app.models.user import User
 from app.schemas.artwork import ArtworkUploadResponse, ArtworkValidationError
 from app.services.storage import get_storage_instance
-from app.services.validation import validate_artwork, ARTWORK_SPECS
+from app.services.validation import ARTWORK_SPECS, validate_artwork
 
 router = APIRouter(prefix="/artwork", tags=["artwork"])
 
@@ -26,10 +24,10 @@ router = APIRouter(prefix="/artwork", tags=["artwork"])
 async def upload_artwork(
     file: UploadFile,
     artwork_type: str,
+    db: DbSession,
+    user: Annotated[object, Depends(require_editor)],
     show_id: str | None = None,
     episode_id: str | None = None,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_editor),
 ):
     """
     Upload artwork for a show or episode.
@@ -58,7 +56,9 @@ async def upload_artwork(
             status_code=400,
             detail={
                 "artwork_type": artwork_type,
-                "errors": ["Provide either show_id or episode_id, not both or neither."],
+                "errors": [
+                    "Provide either show_id or episode_id, not both or neither."
+                ],
             },
         )
 

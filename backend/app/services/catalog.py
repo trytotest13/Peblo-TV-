@@ -10,7 +10,7 @@ into the flat published catalogue JSON. Two important rules:
      language variants.
 """
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -71,7 +71,7 @@ async def build_catalog(db: AsyncSession) -> CatalogDocument:
                 grouped[ep.content_group].append(ep)
 
             episode_entries: list[EpisodeCatalogEntry] = []
-            for group_id, variants in grouped.items():
+            for _group_id, variants in grouped.items():
                 # Use the first variant as the canonical entry
                 canonical = variants[0]
                 languages = [
@@ -128,7 +128,7 @@ async def build_catalog(db: AsyncSession) -> CatalogDocument:
         )
 
     return CatalogDocument(
-        generated_at=datetime.now(timezone.utc),
+        generated_at=datetime.now(UTC),
         shows=catalog_shows,
     )
 

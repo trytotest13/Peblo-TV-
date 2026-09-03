@@ -1,12 +1,11 @@
 """Admin endpoints — validation report and audit log."""
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.deps import require_admin
-from app.db import get_db
+from app.auth.deps import DbSession, require_admin
 from app.models.audit_log import AuditLog
-from app.models.user import User
 from app.schemas.audit import AuditLogRead
 from app.schemas.catalog import ValidationReport
 from app.services.validation_report import build_validation_report
@@ -16,8 +15,8 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 @router.get("/validation-report", response_model=ValidationReport)
 async def get_validation_report(
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_admin),
+    db: DbSession,
+    _user: Annotated[object, Depends(require_admin)],
 ):
     """
     Return everything currently blocking publish, grouped by show.
@@ -29,13 +28,17 @@ async def get_validation_report(
 
 @router.get("/audit-log", response_model=list[AuditLogRead])
 async def get_audit_log(
-    entity_type: str | None = Query(None, description="Filter by show/season/episode"),
+    db: DbSession,
+    _user: Annotated[object, Depends(require_admin)],
+    entity_type: str | None = Query(
+        None, description="Filter by show/season/episode"
+    ),
     entity_id: str | None = Query(None, description="Filter by entity ID"),
-    actor_email: str | None = Query(None, description="Filter by who made the change"),
+    actor_email: str | None = Query(
+        None, description="Filter by who made the change"
+    ),
     skip: int = 0,
     limit: int = 50,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_admin),
 ):
     """
     Return the audit log, newest first. Admin-only — this is who-changed-what history.

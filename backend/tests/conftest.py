@@ -18,17 +18,17 @@ os.environ.setdefault("JWT_SECRET", "test-secret")
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
-from app.db import Base
-import app.models.show  # noqa
-import app.models.season  # noqa
-import app.models.episode  # noqa
 import app.models.artwork  # noqa
-import app.models.publish_run  # noqa
-import app.models.user  # noqa
 import app.models.audit_log  # noqa
+import app.models.episode  # noqa
+import app.models.publish_run  # noqa
+import app.models.season  # noqa
+import app.models.show  # noqa
+import app.models.user  # noqa
+from app.db import Base
 
 
 @pytest_asyncio.fixture
@@ -70,7 +70,8 @@ async def db_session(test_engine):
 @pytest_asyncio.fixture
 async def client(test_engine):
     """HTTP client wired to the in-memory test app."""
-    from httpx import AsyncClient, ASGITransport
+    from httpx import ASGITransport, AsyncClient
+
     from app.main import app
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
