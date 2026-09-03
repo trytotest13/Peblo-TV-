@@ -1,5 +1,6 @@
 """Show CRUD endpoints."""
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
@@ -11,6 +12,7 @@ from app.db import get_db
 from app.models.show import Show
 from app.models.user import User
 from app.schemas.show import ShowCreate, ShowRead, ShowUpdate, ShowWithArtworkRead
+from app.services.audit import log_change
 
 router = APIRouter(prefix="/shows", tags=["shows"])
 
@@ -39,7 +41,7 @@ async def list_shows(
 
 @router.get("/{show_id}", response_model=ShowWithArtworkRead)
 async def get_show(
-    show_id: str,
+    show_id: UUID,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -67,6 +69,8 @@ async def create_show(
 
     show = Show(**body.model_dump())
     db.add(show)
+    await db.flush()
+    await log_change(db, user.email, "show", str(show.id), "created", after=ShowRead.model_validate(show).model_dump())
     await db.commit()
     await db.refresh(show)
     return ShowRead.model_validate(show)
@@ -74,7 +78,7 @@ async def create_show(
 
 @router.patch("/{show_id}", response_model=ShowRead)
 async def update_show(
-    show_id: str,
+    show_id: UUID,
     body: ShowUpdate,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_editor),
@@ -84,8 +88,11 @@ async def update_show(
     if not show:
         raise HTTPException(status_code=404, detail="Show not found")
 
+    before = ShowRead.model_validate(show).model_dump()
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(show, key, value)
+    await db.flush()
+    await log_change(db, user.email, "show", str(show.id), "updated", before=before, after=ShowRead.model_validate(show).model_dump())
     await db.commit()
     await db.refresh(show)
     return ShowRead.model_validate(show)
@@ -93,7 +100,7 @@ async def update_show(
 
 @router.delete("/{show_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_show(
-    show_id: str,
+    show_id: UUID,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_editor),
 ):
@@ -101,5 +108,7 @@ async def delete_show(
     show = result.scalar_one_or_none()
     if not show:
         raise HTTPException(status_code=404, detail="Show not found")
+    before = ShowRead.model_validate(show).model_dump()
+    await log_change(db, user.email, "show", str(show.id), "deleted", before=before)
     await db.delete(show)
     await db.commit()

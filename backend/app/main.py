@@ -22,6 +22,7 @@ import app.models.episode  # noqa: F401
 import app.models.artwork  # noqa: F401
 import app.models.publish_run  # noqa: F401
 import app.models.user  # noqa: F401
+import app.models.audit_log  # noqa: F401
 
 settings = get_settings()
 logging.basicConfig(level=settings.log_level)

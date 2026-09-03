@@ -1,5 +1,6 @@
 """Episode CRUD endpoints."""
 import uuid
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select, and_
@@ -11,6 +12,7 @@ from app.models.episode import Episode
 from app.models.season import Season
 from app.models.user import User
 from app.schemas.episode import EpisodeCreate, EpisodeRead, EpisodeUpdate
+from app.services.audit import log_change
 
 router = APIRouter(prefix="/episodes", tags=["episodes"])
 
@@ -42,7 +44,7 @@ async def list_episodes(
 
 @router.get("/{episode_id}", response_model=EpisodeRead)
 async def get_episode(
-    episode_id: str,
+    episode_id: UUID,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -84,6 +86,8 @@ async def create_episode(
 
     episode = Episode(**body.model_dump())
     db.add(episode)
+    await db.flush()
+    await log_change(db, user.email, "episode", str(episode.id), "created", after=EpisodeRead.model_validate(episode).model_dump())
     await db.commit()
     await db.refresh(episode)
     return EpisodeRead.model_validate(episode)
@@ -91,7 +95,7 @@ async def create_episode(
 
 @router.patch("/{episode_id}", response_model=EpisodeRead)
 async def update_episode(
-    episode_id: str,
+    episode_id: UUID,
     body: EpisodeUpdate,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_editor),
@@ -101,8 +105,11 @@ async def update_episode(
     if not episode:
         raise HTTPException(status_code=404, detail="Episode not found")
 
+    before = EpisodeRead.model_validate(episode).model_dump()
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(episode, key, value)
+    await db.flush()
+    await log_change(db, user.email, "episode", str(episode.id), "updated", before=before, after=EpisodeRead.model_validate(episode).model_dump())
     await db.commit()
     await db.refresh(episode)
     return EpisodeRead.model_validate(episode)
@@ -110,7 +117,7 @@ async def update_episode(
 
 @router.delete("/{episode_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_episode(
-    episode_id: str,
+    episode_id: UUID,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_editor),
 ):
@@ -118,5 +125,7 @@ async def delete_episode(
     episode = result.scalar_one_or_none()
     if not episode:
         raise HTTPException(status_code=404, detail="Episode not found")
+    before = EpisodeRead.model_validate(episode).model_dump()
+    await log_change(db, user.email, "episode", str(episode.id), "deleted", before=before)
     await db.delete(episode)
     await db.commit()

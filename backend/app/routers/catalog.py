@@ -1,20 +1,20 @@
-"""Catalog endpoints — publish, search, and read."""
+"""Catalog endpoints — publish, search, read, rollback."""
 import json
 import os
+import shutil
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import UUID
 
 from app.auth.deps import require_admin
 from app.config import get_settings
 from app.db import get_db
 from app.models.publish_run import PublishRun
 from app.models.user import User
-from app.schemas.catalog import (
-    PublishRunRead,
-)
+from app.schemas.catalog import PublishRunRead
 from app.services.catalog import build_catalog
 from app.services.storage import get_storage_instance
 
@@ -128,17 +128,23 @@ async def publish_catalog(
         storage = get_storage_instance()
         live_key = settings.catalog_filename
         tmp_key = f"{live_key}.tmp"
+        versioned_key = f"{live_key}.v{run.id}.json"
 
         # Write to temp location first
         live_path = os.path.join(settings.local_storage_path, live_key)
         tmp_path = os.path.join(settings.local_storage_path, tmp_key)
+        versioned_path = os.path.join(settings.local_storage_path, versioned_key)
         os.makedirs(os.path.dirname(live_path), exist_ok=True)
 
         with open(tmp_path, "w") as f:
             f.write(catalog_json)
 
-        # Atomic rename
+        # Atomic rename to live
         os.replace(tmp_path, live_path)
+
+        # Save a versioned copy for rollback
+        with open(versioned_path, "w") as f:
+            f.write(catalog_json)
 
         # Update run
         run.outcome = "success"
@@ -179,3 +185,155 @@ async def list_publish_runs(
         .limit(limit)
     )
     return [PublishRunRead.model_validate(r) for r in result.scalars().all()]
+
+
+@router.post("/rollback/{run_id}", response_model=PublishRunRead)
+async def rollback_to_publish(
+    run_id: UUID = Path(..., description="ID of a successful publish run to roll back to"),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_admin),
+):
+    """
+    Roll back the live catalogue to a previous successful publish.
+
+    The versioned catalogue from the target run is copied over the live file
+    atomically (write-temp + os.replace). A new PublishRun row is recorded
+    with outcome='rolled_back' so the history shows what happened.
+    """
+    target = await db.get(PublishRun, run_id)
+    if not target:
+        raise HTTPException(status_code=404, detail=f"Publish run {run_id} not found")
+    if target.outcome != "success":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot roll back to a {target.outcome} run. Only successful runs are kept.",
+        )
+
+    # Record a new run for this rollback
+    rollback_run = PublishRun(initiated_by=user.email, outcome="rolled_back")
+    db.add(rollback_run)
+    await db.flush()
+
+    live_key = settings.catalog_filename
+    live_path = os.path.join(settings.local_storage_path, live_key)
+    versioned_path = os.path.join(
+        settings.local_storage_path, f"{live_key}.v{run_id}.json"
+    )
+    tmp_path = os.path.join(settings.local_storage_path, f"{live_key}.tmp")
+
+    if not os.path.exists(versioned_path):
+        rollback_run.outcome = "failed"
+        rollback_run.error_message = (
+            f"Versioned file for run {run_id} not found on disk. "
+            "Publishes before versioning was added cannot be rolled back."
+        )
+        rollback_run.finished_at = datetime.now(timezone.utc)
+        await db.commit()
+        raise HTTPException(
+            status_code=410,
+            detail=rollback_run.error_message,
+        )
+
+    try:
+        shutil.copy(versioned_path, tmp_path)
+        os.replace(tmp_path, live_path)
+        rollback_run.shows_published = target.shows_published
+        rollback_run.episodes_published = target.episodes_published
+        rollback_run.finished_at = datetime.now(timezone.utc)
+        await db.commit()
+        await db.refresh(rollback_run)
+        return PublishRunRead.model_validate(rollback_run)
+    except Exception as exc:
+        rollback_run.outcome = "failed"
+        rollback_run.error_message = str(exc)
+        rollback_run.finished_at = datetime.now(timezone.utc)
+        await db.commit()
+        raise HTTPException(status_code=500, detail=f"Rollback failed: {exc}")
+
+
+@router.get("/diff/{run_id}")
+async def diff_publish(
+    run_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_admin),
+):
+    """
+    Return a diff between the current live catalogue and a previous publish.
+
+    Shows show slugs that were added, removed, or had their episode count change.
+    """
+    target = await db.get(PublishRun, run_id)
+    if not target:
+        raise HTTPException(status_code=404, detail=f"Publish run {run_id} not found")
+    if target.outcome != "success":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Run {run_id} was {target.outcome}; no diff available.",
+        )
+
+    live_key = settings.catalog_filename
+    live_path = os.path.join(settings.local_storage_path, live_key)
+    versioned_path = os.path.join(
+        settings.local_storage_path, f"{live_key}.v{run_id}.json"
+    )
+
+    if not os.path.exists(live_path):
+        raise HTTPException(status_code=404, detail="No live catalogue file found.")
+    if not os.path.exists(versioned_path):
+        raise HTTPException(
+            status_code=404,
+            detail=f"Versioned file for run {run_id} not found on disk.",
+        )
+
+    with open(live_path) as f:
+        live = json.load(f)
+    with open(versioned_path) as f:
+        old = json.load(f)
+
+    return _compute_diff(old, live)
+
+
+def _compute_diff(old: dict, new: dict) -> dict:
+    """Compute a structural diff between two catalogues."""
+    old_shows = {s["slug"]: s for s in old.get("shows", [])}
+    new_shows = {s["slug"]: s for s in new.get("shows", [])}
+
+    added = sorted(set(new_shows) - set(old_shows))
+    removed = sorted(set(old_shows) - set(new_shows))
+
+    common = set(old_shows) & set(new_shows)
+    changed = []
+    for slug in sorted(common):
+        old_eps = sum(
+            len(ep.get("languages", [])) if False else len(season.get("episodes", []))
+            for season in old_shows[slug].get("seasons", [])
+        )
+        # Count unique episodes (post content_group collapse) — use total episodes
+        old_total_eps = sum(
+            len(season.get("episodes", []))
+            for season in old_shows[slug].get("seasons", [])
+        )
+        new_total_eps = sum(
+            len(season.get("episodes", []))
+            for season in new_shows[slug].get("seasons", [])
+        )
+        old_status = old_shows[slug].get("section")
+        new_status = new_shows[slug].get("section")
+        if old_total_eps != new_total_eps or old_status != new_status:
+            changed.append(
+                {
+                    "slug": slug,
+                    "old_episodes": old_total_eps,
+                    "new_episodes": new_total_eps,
+                    "old_section": old_status,
+                    "new_section": new_status,
+                }
+            )
+
+    return {
+        "added_shows": added,
+        "removed_shows": removed,
+        "changed_shows": changed,
+        "old_shows_count": len(old_shows),
+        "new_shows_count": len(new_shows),
+    }

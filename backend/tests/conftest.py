@@ -28,6 +28,7 @@ import app.models.episode  # noqa
 import app.models.artwork  # noqa
 import app.models.publish_run  # noqa
 import app.models.user  # noqa
+import app.models.audit_log  # noqa
 
 
 @pytest_asyncio.fixture
