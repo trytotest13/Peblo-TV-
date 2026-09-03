@@ -82,17 +82,25 @@ Where it bites:
 
 ## 5. What I left out and why
 
-- **Stretch goals** (versioned catalogue + rollback, publish dry-run
-  diff, audit log) — not in the 6-8 hour budget. I noted them in the
-  stretch list. The data model already has `publish_runs`, which is the
-  foundation for rollback.
 - **CI deploy step** — written as a comment block, not a real job.
   There's no cloud to deploy to, and the actual cloud commands depend
   on the platform. I scaffolded the image-build step so the deploy
   diff is small.
-- **Audit log of who changed what** — would be a simple `change_log`
-  table with before/after JSON; not done in the budget. Editors can
-  see the most recent publish but not the diff.
+
+## 5b. Stretch goals (implemented)
+
+All three optional stretch goals were implemented:
+
+- **Versioned catalogue + rollback**: Each successful publish writes a
+  versioned copy (`catalog.json.v{run_id}.json`). `POST /catalog/rollback/{run_id}`
+  restores from that version atomically. Old (pre-versioning) publishes
+  return 410 Gone.
+- **Publish diff**: `GET /catalog/diff/{run_id}` returns added/removed/changed
+  shows between the current live catalogue and a previous publish.
+- **Audit log**: Every show/season/episode create/update/delete writes a row
+  to `audit_logs` with the actor's email and before/after JSON. Available
+  at `GET /admin/audit-log` with optional filters by entity type, entity ID,
+  or actor email.
 
 ## 6. AI tools used
 
@@ -121,3 +129,5 @@ fields, FastAPI router shape) and rewrote or rejected:
 - Docker + CI: 30 minutes
 - Docs (this file): 30 minutes
 - (Part B + C: ~2 hours — see their READMEs)
+- Phase 2 polish (search fixes, CMS debounce, CI lint jobs): 30 minutes
+- Stretch goals (versioned catalogue, diff, audit log, tests): 45 minutes

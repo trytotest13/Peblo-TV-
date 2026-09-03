@@ -217,3 +217,9 @@ npm run format:check  # Check formatting
 - Cloudflair R2 secrets (R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY) must be stored in your platform's secret manager
 - Storage backend files must be gitignored
 - Role-based access control is enforced server-side for all protected endpoints
+
+## Stretch goals (all implemented)
+
+- **Versioned catalogue + rollback** — `POST /catalog/rollback/{run_id}` restores the live catalogue from a versioned copy of a previous successful publish. Each successful publish writes `catalog.json.v{run_id}.json` alongside the live file.
+- **Publish diff** — `GET /catalog/diff/{run_id}` returns added/removed/changed shows between the current live catalogue and a previous publish.
+- **Audit log** — every show/season/episode create/update/delete writes a row to `audit_logs` with the actor's email and before/after JSON snapshots. Available at `GET /admin/audit-log?entity_type=...&actor_email=...&entity_id=...`.

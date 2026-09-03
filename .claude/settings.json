@@ -9,7 +9,8 @@
       "Bash(pytest tests/test_audit.py -v)",
       "Bash(pytest tests/test_audit.py::test_update_show_writes_audit_with_before_after -v)",
       "Bash(pytest tests/test_audit.py::test_delete_show_writes_audit_log tests/test_rollback.py -v)",
-      "Bash(git commit -m 'Stretch goals: versioned catalogue + rollback + diff + audit log *)"
+      "Bash(git commit -m 'Stretch goals: versioned catalogue + rollback + diff + audit log *)",
+      "Bash(git commit *)"
     ]
   }
 }
