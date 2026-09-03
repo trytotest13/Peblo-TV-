@@ -1,0 +1,58 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: peblo
+      POSTGRES_PASSWORD: peblo
+      POSTGRES_DB: peblo_tv
+    ports:
+      - "5432:5432"
+    volumes:
+      - peblo_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U peblo"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://peblo:peblo@db:5432/peblo_tv
+      SYNC_DATABASE_URL: postgresql+psycopg2://peblo:peblo@db:5432/peblo_tv
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      STORAGE_BACKEND: local
+      LOCAL_STORAGE_PATH: /app/storage
+      BOOTSTRAP_ADMIN_EMAIL: admin@peblo.local
+      BOOTSTRAP_ADMIN_PASSWORD: admin123
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/storage:/app/storage
+      - ./documaent:/app/documaent:ro
+
+  cms:
+    build: ./cms
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: http://localhost:8000
+    depends_on:
+      - api
+
+  viewer:
+    build: ./viewer
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:8000
+    depends_on:
+      - api
+
+volumes:
+  peblo_pgdata:
