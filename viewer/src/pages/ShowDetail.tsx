@@ -21,12 +21,20 @@ export default function ShowDetail() {
   if (isLoading) {
     return (
       <div className="detail-hero">
-        <div className="detail-back" onClick={() => navigate('/')}>← Back</div>
+        <div className="detail-back" onClick={() => navigate('/')}>
+          ← Back
+        </div>
         <div className="detail-hero-content">
           <div className="loading-skeleton" style={{ width: 220, aspectRatio: '2/3' }} />
           <div style={{ flex: 1 }}>
-            <div className="loading-skeleton" style={{ height: 40, width: '50%', marginBottom: 16 }} />
-            <div className="loading-skeleton" style={{ height: 20, width: '30%', marginBottom: 24 }} />
+            <div
+              className="loading-skeleton"
+              style={{ height: 40, width: '50%', marginBottom: 16 }}
+            />
+            <div
+              className="loading-skeleton"
+              style={{ height: 20, width: '30%', marginBottom: 24 }}
+            />
             <div className="loading-skeleton" style={{ height: 80, width: '80%' }} />
           </div>
         </div>
@@ -40,7 +48,11 @@ export default function ShowDetail() {
         <div className="empty-state">
           <h2>Show not found</h2>
           <p>This show may not be published yet.</p>
-          <button className="filter-pill active" style={{ marginTop: 16 }} onClick={() => navigate('/')}>
+          <button
+            className="filter-pill active"
+            style={{ marginTop: 16 }}
+            onClick={() => navigate('/')}
+          >
             Go home
           </button>
         </div>
@@ -48,22 +60,22 @@ export default function ShowDetail() {
     )
   }
 
-  const allLangs = [...new Set(
-    show.seasons.flatMap((s: any) =>
-      s.episodes.flatMap((e: any) => e.languages?.map((l: any) => l.language) || [])
-    )
-  )]
+  const allLangs = [
+    ...new Set(
+      show.seasons.flatMap((s: any) =>
+        s.episodes.flatMap((e: any) => e.languages?.map((l: any) => l.language) || [])
+      )
+    ),
+  ]
 
   return (
     <div className="detail-hero">
-      <div className="detail-back" onClick={() => navigate('/')}>← Back</div>
+      <div className="detail-back" onClick={() => navigate('/')}>
+        ← Back
+      </div>
 
       <div className="detail-hero-content">
-        <img
-          className="detail-poster"
-          src={IMG(show.poster_url) || undefined}
-          alt={show.title}
-        />
+        <img className="detail-poster" src={IMG(show.poster_url) || undefined} alt={show.title} />
         <div className="detail-info">
           <h1 className="detail-title">{show.title}</h1>
           <div className="detail-meta">
@@ -71,13 +83,17 @@ export default function ShowDetail() {
             <span>·</span>
             {show.seasons.length} season{show.seasons.length !== 1 ? 's' : ''}
             <span>·</span>
-            {allLangs.map(l => (
-              <span key={l} className="lang-tag">{l === 'en' ? 'EN' : 'HI'}</span>
+            {allLangs.map((l) => (
+              <span key={l} className="lang-tag">
+                {l === 'en' ? 'EN' : 'HI'}
+              </span>
             ))}
           </div>
           <div className="detail-categories">
             {show.categories?.map((c: any) => (
-              <span key={c} className="cat-tag">{c}</span>
+              <span key={c} className="cat-tag">
+                {c}
+              </span>
             ))}
           </div>
           <p className="detail-synopsis">{show.synopsis}</p>
@@ -130,8 +146,12 @@ function EpisodeRow({ episode }: { episode: any }) {
       <div className="episode-info">
         <div className="episode-title">{episode.title}</div>
         {episode.synopsis && (
-          <div style={{ fontSize: '.8rem', color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.4 }}>
-            {episode.synopsis.length > 120 ? episode.synopsis.slice(0, 120) + '…' : episode.synopsis}
+          <div
+            style={{ fontSize: '.8rem', color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.4 }}
+          >
+            {episode.synopsis.length > 120
+              ? episode.synopsis.slice(0, 120) + '…'
+              : episode.synopsis}
           </div>
         )}
         <div className="episode-langs">
@@ -143,7 +163,10 @@ function EpisodeRow({ episode }: { episode: any }) {
           ))}
         </div>
       </div>
-      <button className="hero-btn" style={{ flexShrink: 0, padding: '8px 16px', fontSize: '.9rem' }}>
+      <button
+        className="hero-btn"
+        style={{ flexShrink: 0, padding: '8px 16px', fontSize: '.9rem' }}
+      >
         ▶
       </button>
     </div>

@@ -42,8 +42,8 @@ export default function Publish() {
           {!canPublish ? (
             <>
               <div className="alert alert-warning">
-                {report?.issues?.length} issue{report?.issues?.length === 1 ? '' : 's'} blocking publish.
-                Fix them below, then run the publish.
+                {report?.issues?.length} issue{report?.issues?.length === 1 ? '' : 's'} blocking
+                publish. Fix them below, then run the publish.
               </div>
               {Object.entries(groupedByShow).map(([show, issues]) => (
                 <div key={show} className="publish-block">
@@ -70,11 +70,23 @@ export default function Publish() {
             }}
             style={{ width: '100%', marginTop: 8 }}
           >
-            {publish.isPending ? 'Publishing...' : canPublish ? '🚀 Publish Now' : '⛔ Publish disabled — fix issues above'}
+            {publish.isPending
+              ? 'Publishing...'
+              : canPublish
+                ? '🚀 Publish Now'
+                : '⛔ Publish disabled — fix issues above'}
           </button>
           {!canPublish && (
-            <div style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 6, textAlign: 'center' }}>
-              Button is disabled because there are {report?.issues?.length} issue(s) blocking publish.
+            <div
+              style={{
+                fontSize: 12,
+                color: 'var(--color-muted)',
+                marginTop: 6,
+                textAlign: 'center',
+              }}
+            >
+              Button is disabled because there are {report?.issues?.length} issue(s) blocking
+              publish.
             </div>
           )}
         </div>

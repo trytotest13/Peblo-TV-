@@ -5,10 +5,6 @@ import { fetchCatalog, searchCatalog, IMG } from '../api'
 
 const SECTIONS = ['featured', 'series', 'minisodes', 'songs']
 const LANGUAGES = ['en', 'hi']
-const CATEGORIES = [
-  'adventure','folk','friendship','india','language','learning',
-  'maths','music','nature','reading','science','singalong','stories','travel','values',
-]
 
 export default function Home() {
   const [search, setSearch] = useState('')
@@ -30,7 +26,12 @@ export default function Home() {
     queryKey: ['catalog', search],
     queryFn: () =>
       search
-        ? searchCatalog({ q: search, section: activeSection || undefined, category: activeCat || undefined, language: activeLang || undefined }).then(r => ({ shows: r.results || [] }))
+        ? searchCatalog({
+            q: search,
+            section: activeSection || undefined,
+            category: activeCat || undefined,
+            language: activeLang || undefined,
+          }).then((r) => ({ shows: r.results || [] }))
         : fetchCatalog(),
   })
 
@@ -41,18 +42,23 @@ export default function Home() {
   const filteredShows = shows.filter((s: any) => {
     if (activeSection && s.section !== activeSection) return false
     if (activeCat && !s.categories?.includes(activeCat)) return false
-    if (activeLang && !s.seasons?.some((se: any) =>
-      se.episodes?.some((ep: any) =>
-        ep.languages?.some((l: any) => l.language === activeLang)
+    if (
+      activeLang &&
+      !s.seasons?.some((se: any) =>
+        se.episodes?.some((ep: any) => ep.languages?.some((l: any) => l.language === activeLang))
       )
-    )) return false
+    )
+      return false
     return true
   })
 
   const sections = activeSection ? [activeSection] : SECTIONS
 
   const clearFilters = () => {
-    setActiveSection(''); setActiveLang(''); setActiveCat(''); setSearch('')
+    setActiveSection('')
+    setActiveLang('')
+    setActiveCat('')
+    setSearch('')
   }
 
   const hasFilters = search || activeSection || activeLang || activeCat
@@ -96,10 +102,13 @@ export default function Home() {
 
       {/* Filters */}
       <div className="filter-row">
-        <button className={`filter-pill ${!activeSection && !activeLang && !activeCat ? 'active' : ''}`} onClick={clearFilters}>
+        <button
+          className={`filter-pill ${!activeSection && !activeLang && !activeCat ? 'active' : ''}`}
+          onClick={clearFilters}
+        >
           All
         </button>
-        {SECTIONS.map(s => (
+        {SECTIONS.map((s) => (
           <button
             key={s}
             className={`filter-pill ${activeSection === s ? 'active' : ''}`}
@@ -109,7 +118,7 @@ export default function Home() {
           </button>
         ))}
         <span style={{ width: 1, background: 'rgba(255,255,255,.1)', margin: '0 4px' }} />
-        {LANGUAGES.map(l => (
+        {LANGUAGES.map((l) => (
           <button
             key={l}
             className={`filter-pill ${activeLang === l ? 'active' : ''}`}
@@ -123,10 +132,17 @@ export default function Home() {
       {/* Loading */}
       {isLoading && (
         <div style={{ padding: 40 }}>
-          <div className="loading-skeleton" style={{ height: 220, width: '100%', marginBottom: 12 }} />
+          <div
+            className="loading-skeleton"
+            style={{ height: 220, width: '100%', marginBottom: 12 }}
+          />
           <div style={{ display: 'flex', gap: 8 }}>
-            {[1,2,3,4,5].map(i => (
-              <div key={i} className="loading-skeleton" style={{ flex: 1, aspectRatio: '2/3', borderRadius: 4 }} />
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div
+                key={i}
+                className="loading-skeleton"
+                style={{ flex: 1, aspectRatio: '2/3', borderRadius: 4 }}
+              />
             ))}
           </div>
         </div>

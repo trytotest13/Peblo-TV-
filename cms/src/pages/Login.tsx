@@ -17,24 +17,29 @@ export default function Login() {
   })
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: '#f8f9fa',
-    }}>
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#f8f9fa',
+      }}
+    >
       <div className="card" style={{ width: 380, padding: 28 }}>
         <h2 style={{ margin: '0 0 4px' }}>Peblo TV CMS</h2>
         <p style={{ color: 'var(--color-muted)', fontSize: 13, margin: '0 0 20px' }}>
           Sign in to manage the catalogue.
         </p>
 
-        {login.isError && (
-          <div className="alert alert-error">{(login.error as Error).message}</div>
-        )}
+        {login.isError && <div className="alert alert-error">{(login.error as Error).message}</div>}
 
-        <form onSubmit={(e) => { e.preventDefault(); login.mutate({ email, password }) }}>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            login.mutate({ email, password })
+          }}
+        >
           <div className="form-group">
             <label className="form-label">Email</label>
             <input
@@ -55,7 +60,12 @@ export default function Login() {
               required
             />
           </div>
-          <button className="btn btn-primary" type="submit" disabled={login.isPending} style={{ width: '100%' }}>
+          <button
+            className="btn btn-primary"
+            type="submit"
+            disabled={login.isPending}
+            style={{ width: '100%' }}
+          >
             {login.isPending ? 'Signing in...' : 'Sign in'}
           </button>
         </form>

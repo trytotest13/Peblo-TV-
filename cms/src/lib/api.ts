@@ -9,14 +9,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken()
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(options.headers as Record<string, string> || {}),
+    ...((options.headers as Record<string, string>) || {}),
   }
   if (token) headers['Authorization'] = `Bearer ${token}`
 
-  const res = await fetch(`${BASE}${path}`, { ...options, headers })
-    .catch((err) => {
-      throw new Error(`Cannot reach API at ${BASE}. Is the backend running on port 8000? (${err.message})`)
-    })
+  const res = await fetch(`${BASE}${path}`, { ...options, headers }).catch((err) => {
+    throw new Error(
+      `Cannot reach API at ${BASE}. Is the backend running on port 8000? (${err.message})`
+    )
+  })
   if (res.status === 401 || res.status === 403) {
     localStorage.removeItem('peblo_token')
     window.location.href = '/login'
@@ -50,7 +51,8 @@ export const api = {
   deleteShow: (id: string) => request<void>(`/shows/${id}`, { method: 'DELETE' }),
 
   // Seasons
-  createSeason: (body: any) => request<any>('/seasons', { method: 'POST', body: JSON.stringify(body) }),
+  createSeason: (body: any) =>
+    request<any>('/seasons', { method: 'POST', body: JSON.stringify(body) }),
   updateSeason: (id: string, body: any) =>
     request<any>(`/seasons/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   deleteSeason: (id: string) => request<void>(`/seasons/${id}`, { method: 'DELETE' }),

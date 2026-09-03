@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
 
 const LANGUAGES = ['en', 'hi']
@@ -25,7 +24,14 @@ export default function EpisodesList() {
     <div>
       <h2 style={{ margin: '0 0 16px' }}>Episodes</h2>
       <div className="card">
-        <div style={{ padding: 14, borderBottom: '1px solid var(--color-border)', display: 'flex', gap: 8 }}>
+        <div
+          style={{
+            padding: 14,
+            borderBottom: '1px solid var(--color-border)',
+            display: 'flex',
+            gap: 8,
+          }}
+        >
           <input
             className="form-input"
             placeholder="Search by title..."
@@ -33,21 +39,37 @@ export default function EpisodesList() {
             onChange={(e) => setSearch(e.target.value)}
             style={{ flex: 1 }}
           />
-          <select className="form-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <select
+            className="form-select"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
             <option value="">All statuses</option>
             <option value="published">published</option>
             <option value="draft">draft</option>
           </select>
-          <select className="form-select" value={language} onChange={(e) => setLanguage(e.target.value)}>
+          <select
+            className="form-select"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+          >
             <option value="">All languages</option>
-            {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
+            {LANGUAGES.map((l) => (
+              <option key={l} value={l}>
+                {l}
+              </option>
+            ))}
           </select>
         </div>
 
         {isLoading ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-muted)' }}>Loading...</div>
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-muted)' }}>
+            Loading...
+          </div>
         ) : error ? (
-          <div className="alert alert-error" style={{ margin: 14 }}>{(error as Error).message}</div>
+          <div className="alert alert-error" style={{ margin: 14 }}>
+            {(error as Error).message}
+          </div>
         ) : !data || data.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-muted)' }}>
             No episodes match your filters.
@@ -67,10 +89,18 @@ export default function EpisodesList() {
               {data.map((e: any) => (
                 <tr key={e.id}>
                   <td>{e.title}</td>
-                  <td><code style={{ fontSize: 11 }}>{e.slug}</code></td>
+                  <td>
+                    <code style={{ fontSize: 11 }}>{e.slug}</code>
+                  </td>
                   <td>{e.language}</td>
-                  <td><span className={`badge badge-${e.status}`}>{e.status}</span></td>
-                  <td>{e.duration_seconds ? `${Math.floor(e.duration_seconds / 60)}m ${e.duration_seconds % 60}s` : '—'}</td>
+                  <td>
+                    <span className={`badge badge-${e.status}`}>{e.status}</span>
+                  </td>
+                  <td>
+                    {e.duration_seconds
+                      ? `${Math.floor(e.duration_seconds / 60)}m ${e.duration_seconds % 60}s`
+                      : '—'}
+                  </td>
                 </tr>
               ))}
             </tbody>

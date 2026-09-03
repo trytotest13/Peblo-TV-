@@ -16,15 +16,24 @@ export default function Layout() {
       <aside className="sidebar">
         <div className="sidebar-header">📺 Peblo CMS</div>
         <nav className="sidebar-nav">
-          <NavLink to="/shows" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+          <NavLink
+            to="/shows"
+            className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+          >
             Shows
           </NavLink>
-          <NavLink to="/episodes" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+          <NavLink
+            to="/episodes"
+            className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+          >
             Episodes
           </NavLink>
           <div className="sidebar-section-label">Admin</div>
           {user?.role === 'admin' && (
-            <NavLink to="/publish" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+            <NavLink
+              to="/publish"
+              className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+            >
               Publish
             </NavLink>
           )}
@@ -42,7 +51,9 @@ export default function Layout() {
       <main className="main">
         <div className="topbar">
           <div style={{ flex: 1 }} />
-          <button className="btn" onClick={logout}>Log out</button>
+          <button className="btn" onClick={logout}>
+            Log out
+          </button>
         </div>
         <div className="page-content">
           <Outlet />

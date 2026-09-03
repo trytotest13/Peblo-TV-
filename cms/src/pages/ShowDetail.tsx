@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import ArtworkSlot from '../components/ArtworkSlot'
@@ -8,11 +8,14 @@ const LANGUAGES = ['en', 'hi']
 
 export default function ShowDetail() {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [episodeForm, setEpisodeForm] = useState<{ seasonId: string; showId: string } | null>(null)
 
-  const { data: show, isLoading, error } = useQuery({
+  const {
+    data: show,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['show', id],
     queryFn: () => api.getShow(id!),
     enabled: !!id,
@@ -44,7 +47,9 @@ export default function ShowDetail() {
   return (
     <div>
       <div style={{ marginBottom: 16 }}>
-        <Link to="/shows" style={{ fontSize: 13 }}>← Back to shows</Link>
+        <Link to="/shows" style={{ fontSize: 13 }}>
+          ← Back to shows
+        </Link>
       </div>
 
       <div className="card" style={{ marginBottom: 16 }}>
@@ -162,12 +167,21 @@ function EpisodeRow({ episode }: { episode: any }) {
     },
   })
   return (
-    <div style={{ padding: '6px 0', borderBottom: '1px solid #f1f3f5', display: 'flex', alignItems: 'center' }}>
+    <div
+      style={{
+        padding: '6px 0',
+        borderBottom: '1px solid #f1f3f5',
+        display: 'flex',
+        alignItems: 'center',
+      }}
+    >
       <span style={{ flex: 1 }}>
         <strong>E{episode.episode_number}</strong> — {episode.title}{' '}
         <span style={{ fontSize: 11, color: 'var(--color-muted)' }}>· {episode.language}</span>
       </span>
-      <span className={`badge badge-${episode.status}`} style={{ marginRight: 8 }}>{episode.status}</span>
+      <span className={`badge badge-${episode.status}`} style={{ marginRight: 8 }}>
+        {episode.status}
+      </span>
       <button
         className="btn"
         style={{ padding: '2px 8px', fontSize: 11 }}
@@ -179,7 +193,15 @@ function EpisodeRow({ episode }: { episode: any }) {
   )
 }
 
-function NewEpisodeModal({ seasonId, showId, onClose }: { seasonId: string; showId: string; onClose: () => void }) {
+function NewEpisodeModal({
+  seasonId,
+  showId,
+  onClose,
+}: {
+  seasonId: string
+  showId: string
+  onClose: () => void
+}) {
   const queryClient = useQueryClient()
   const [form, setForm] = useState({
     season_id: seasonId,
@@ -210,7 +232,12 @@ function NewEpisodeModal({ seasonId, showId, onClose }: { seasonId: string; show
           {err && <div className="alert alert-error">{err}</div>}
           <div className="form-group">
             <label className="form-label">Title</label>
-            <input className="form-input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
+            <input
+              className="form-input"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              required
+            />
           </div>
           <div className="form-group">
             <label className="form-label">Content Group (shared with language variants)</label>
@@ -225,23 +252,58 @@ function NewEpisodeModal({ seasonId, showId, onClose }: { seasonId: string; show
           <div style={{ display: 'flex', gap: 8 }}>
             <div className="form-group" style={{ flex: 1 }}>
               <label className="form-label">Episode #</label>
-              <input className="form-input" type="number" min={1} value={form.episode_number} onChange={(e) => setForm({ ...form, episode_number: +e.target.value })} required />
+              <input
+                className="form-input"
+                type="number"
+                min={1}
+                value={form.episode_number}
+                onChange={(e) => setForm({ ...form, episode_number: +e.target.value })}
+                required
+              />
             </div>
             <div className="form-group" style={{ flex: 1 }}>
               <label className="form-label">Duration (s)</label>
-              <input className="form-input" type="number" min={0} value={form.duration_seconds} onChange={(e) => setForm({ ...form, duration_seconds: +e.target.value })} />
+              <input
+                className="form-input"
+                type="number"
+                min={0}
+                value={form.duration_seconds}
+                onChange={(e) => setForm({ ...form, duration_seconds: +e.target.value })}
+              />
             </div>
             <div className="form-group" style={{ flex: 1 }}>
               <label className="form-label">Language</label>
-              <select className="form-select" value={form.language} onChange={(e) => setForm({ ...form, language: e.target.value as 'en' | 'hi' })}>
-                {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
+              <select
+                className="form-select"
+                value={form.language}
+                onChange={(e) => setForm({ ...form, language: e.target.value as 'en' | 'hi' })}
+              >
+                {LANGUAGES.map((l) => (
+                  <option key={l} value={l}>
+                    {l}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
         </div>
-        <div style={{ padding: 12, borderTop: '1px solid var(--color-border)', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button className="btn" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" disabled={create.isPending} onClick={() => create.mutate(form)}>
+        <div
+          style={{
+            padding: 12,
+            borderTop: '1px solid var(--color-border)',
+            display: 'flex',
+            gap: 8,
+            justifyContent: 'flex-end',
+          }}
+        >
+          <button className="btn" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            className="btn btn-primary"
+            disabled={create.isPending}
+            onClick={() => create.mutate(form)}
+          >
             {create.isPending ? 'Creating...' : 'Create'}
           </button>
         </div>
@@ -251,7 +313,12 @@ function NewEpisodeModal({ seasonId, showId, onClose }: { seasonId: string; show
 }
 
 const modalBackdrop: React.CSSProperties = {
-  position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+  position: 'fixed',
+  inset: 0,
+  background: 'rgba(0,0,0,.5)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: 1000,
 }
 const modalBox: React.CSSProperties = { width: 480, maxHeight: '90vh', overflowY: 'auto' }

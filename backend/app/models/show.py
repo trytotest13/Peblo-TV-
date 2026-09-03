@@ -2,8 +2,8 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, String, func
-from sqlalchemy.dialects.postgresql import ARRAY, UUID
+from sqlalchemy import DateTime, JSON, String, func
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -40,7 +40,7 @@ class Show(Base):
     section: Mapped[str] = mapped_column(
         String(20), nullable=False, index=True
     )
-    categories: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
+    categories: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, default="draft", index=True
     )  # draft | published

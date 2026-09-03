@@ -49,21 +49,38 @@ export default function ArtworkSlot({ showId, episodeId, artworkType, spec, curr
   }
 
   const hasImage = !!(preview || current)
-  const imageUrl = preview || (current ? `${import.meta.env.VITE_API_URL || ''}/media/${current.storage_key}` : null)
+  const imageUrl =
+    preview ||
+    (current ? `${import.meta.env.VITE_API_URL || ''}/media/${current.storage_key}` : null)
 
   return (
-    <div className={`artwork-slot ${hasImage ? 'has-image' : ''}`} onClick={() => fileRef.current?.click()}>
+    <div
+      className={`artwork-slot ${hasImage ? 'has-image' : ''}`}
+      onClick={() => fileRef.current?.click()}
+    >
       {imageUrl ? (
         <img src={imageUrl} alt={artworkType} />
       ) : (
-        <div style={{ aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-muted)' }}>
+        <div
+          style={{
+            aspectRatio: '1',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--color-muted)',
+          }}
+        >
           {upload.isPending ? 'Uploading...' : '+ Upload'}
         </div>
       )}
       <div className="artwork-slot-label">{artworkType.toUpperCase()}</div>
-      <div className="artwork-slot-spec">{spec.aspect} · {spec.px} · max {spec.maxKB}KB</div>
+      <div className="artwork-slot-spec">
+        {spec.aspect} · {spec.px} · max {spec.maxKB}KB
+      </div>
       {errors.map((err, i) => (
-        <div key={i} className="form-error" style={{ marginTop: 6 }}>{err}</div>
+        <div key={i} className="form-error" style={{ marginTop: 6 }}>
+          {err}
+        </div>
       ))}
       <input
         ref={fileRef}

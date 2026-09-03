@@ -55,7 +55,7 @@ async def build_catalog(db: AsyncSession) -> CatalogDocument:
             continue
 
         # Build a map from artwork_type -> url
-        show_artwork = _artwork_url_map(show.artwork, storage)
+        show_artwork = await _artwork_url_map(show.artwork, storage)
 
         seasons_out: list[SeasonCatalogEntry] = []
         for season in sorted(show.seasons, key=lambda s: s.season_number):
@@ -83,7 +83,7 @@ async def build_catalog(db: AsyncSession) -> CatalogDocument:
                     for v in variants
                 ]
                 # Episode-level artwork: prefer the first variant's artwork
-                ep_artwork = _artwork_url_map(canonical.artwork, storage)
+                ep_artwork = await _artwork_url_map(canonical.artwork, storage)
 
                 episode_entries.append(
                     EpisodeCatalogEntry(
@@ -133,10 +133,10 @@ async def build_catalog(db: AsyncSession) -> CatalogDocument:
     )
 
 
-def _artwork_url_map(artworks: list[Artwork], storage) -> dict[str, str]:
+async def _artwork_url_map(artworks: list[Artwork], storage) -> dict[str, str]:
     """Map artwork_type -> url for a list of Artwork rows."""
     out: dict[str, str] = {}
     for art in artworks:
         if art.artwork_type not in out:
-            out[art.artwork_type] = storage.url(art.storage_key)
+            out[art.artwork_type] = await storage.url(art.storage_key)
     return out

@@ -6,7 +6,12 @@ export async function fetchCatalog() {
   return res.json()
 }
 
-export async function searchCatalog(params: { q?: string; section?: string; category?: string; language?: string }) {
+export async function searchCatalog(params: {
+  q?: string
+  section?: string
+  category?: string
+  language?: string
+}) {
   const qs = new URLSearchParams(
     Object.fromEntries(Object.entries(params).filter(([, v]) => v))
   ).toString()

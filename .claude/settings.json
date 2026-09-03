@@ -3,7 +3,8 @@
     "allow": [
       "Bash(git init *)",
       "Bash(git config *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(python -m pytest tests/test_catalog_builder.py::test_content_group_collapses_into_one_entry -v)"
     ]
   }
 }
