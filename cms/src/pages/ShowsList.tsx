@@ -13,6 +13,7 @@ export default function ShowsList() {
   const [section, setSection] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [showForm, setShowForm] = useState(false)
+  const [editingShow, setEditingShow] = useState<{ id: string; title: string; section: string; categories: string[] } | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Debounce search input by 300ms so we don't fire a request on every keystroke
@@ -41,6 +42,10 @@ export default function ShowsList() {
     mutationFn: api.deleteShow,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['shows'] }),
   })
+
+  const setEditShow = (id: string, title: string, section: string, categories: string[]) => {
+    setEditingShow({ id, title, section, categories })
+  }
 
   if (error) return <div className="alert alert-error">{(error as Error).message}</div>
 
@@ -156,6 +161,13 @@ export default function ShowsList() {
                   </td>
                   <td>
                     <button
+                      className="btn"
+                      style={{ padding: '4px 8px', fontSize: 12 }}
+                      onClick={() => setEditShow(s.id, s.title, s.section, s.categories || [])}
+                    >
+                      Edit
+                    </button>
+                    <button
                       className="btn btn-danger"
                       style={{ padding: '4px 8px', fontSize: 12 }}
                       onClick={() => {
@@ -187,6 +199,15 @@ export default function ShowsList() {
       </div>
 
       {showForm && <NewShowModal onClose={() => setShowForm(false)} />}
+      {editingShow && (
+        <EditShowModal
+          showId={editingShow.id}
+          initialTitle={editingShow.title}
+          initialSection={editingShow.section}
+          initialCategories={editingShow.categories}
+          onClose={() => setEditingShow(null)}
+        />
+      )}
     </div>
   )
 }
@@ -330,6 +351,137 @@ function NewShowModal({ onClose }: { onClose: () => void }) {
             onClick={() => create.mutate(form)}
           >
             {create.isPending ? 'Creating...' : 'Create'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function EditShowModal({
+  showId,
+  initialTitle,
+  initialSection,
+  initialCategories,
+  onClose,
+}: {
+  showId: string
+  initialTitle: string
+  initialSection: string
+  initialCategories: string[]
+  onClose: () => void
+}) {
+  const queryClient = useQueryClient()
+  const [form, setForm] = useState({
+    title: initialTitle,
+    section: initialSection,
+    categories: initialCategories,
+  })
+  const [err, setErr] = useState('')
+
+  const update = useMutation({
+    mutationFn: (vars: { id: string; title: string; section: string; categories: string[] }) =>
+      api.updateShow(vars.id, {
+        title: vars.title,
+        section: vars.section,
+        categories: vars.categories,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shows'] })
+      onClose()
+    },
+    onError: (e) => setErr((e as Error).message),
+  })
+
+  return (
+    <div style={modalBackdrop}>
+      <div className="card" style={modalBox}>
+        <div className="card-header">Edit Show</div>
+        <div className="card-body">
+          {err && <div className="alert alert-error">{err}</div>}
+          <div className="form-group">
+            <label className="form-label">Title</label>
+            <input
+              className="form-input"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Section</label>
+            <select
+              className="form-select"
+              value={form.section}
+              onChange={(e) => setForm({ ...form, section: e.target.value })}
+            >
+              {SECTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Categories</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {CATEGORIES.map((c) => {
+                const active = form.categories.includes(c)
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    className="btn"
+                    style={{
+                      padding: '3px 8px',
+                      fontSize: 12,
+                      ...(active && {
+                        background: 'var(--color-primary)',
+                        color: '#fff',
+                        borderColor: 'var(--color-primary)',
+                      }),
+                    }}
+                    onClick={() => {
+                      setForm({
+                        ...form,
+                        categories: active
+                          ? form.categories.filter((x) => x !== c)
+                          : [...form.categories, c],
+                      })
+                    }}
+                  >
+                    {c}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+        <div
+          style={{
+            padding: 12,
+            borderTop: '1px solid var(--color-border)',
+            display: 'flex',
+            gap: 8,
+            justifyContent: 'flex-end',
+          }}
+        >
+          <button className="btn" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            className="btn btn-primary"
+            disabled={update.isPending}
+            onClick={() =>
+              update.mutate({
+                id: showId,
+                title: form.title,
+                section: form.section,
+                categories: form.categories,
+              })
+            }
+          >
+            {update.isPending ? 'Saving...' : 'Save'}
           </button>
         </div>
       </div>

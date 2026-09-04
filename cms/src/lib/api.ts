@@ -88,4 +88,7 @@ export const api = {
   publishCatalog: () => request<any>('/catalog/publish', { method: 'POST' }),
   getPublishRuns: (skip = 0) => request<any[]>(`/catalog/publish-runs?skip=${skip}&limit=20`),
   getValidationReport: () => request<any>('/admin/validation-report'),
+  getDiff: (runId: string) => request<any>(`/catalog/diff/${runId}`),
+  rollbackTo: (runId: string) =>
+    request<any>(`/catalog/rollback/${runId}`, { method: 'POST' }),
 }

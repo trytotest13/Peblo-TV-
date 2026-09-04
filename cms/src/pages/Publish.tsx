@@ -1,8 +1,12 @@
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
 
 export default function Publish() {
   const queryClient = useQueryClient()
+  const [diffData, setDiffData] = useState<any | null>(null)
+  const [showDiffModal, setShowDiffModal] = useState(false)
+
   const {
     data: report,
     isLoading,
@@ -23,6 +27,25 @@ export default function Publish() {
       queryClient.invalidateQueries({ queryKey: ['publish-runs'] })
       queryClient.invalidateQueries({ queryKey: ['validation-report'] })
     },
+  })
+
+  const rollback = useMutation({
+    mutationFn: (runId: string) => api.rollbackTo(runId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['publish-runs'] })
+      queryClient.invalidateQueries({ queryKey: ['validation-report'] })
+      alert('Rollback successful!')
+    },
+    onError: (e) => alert((e as Error).message),
+  })
+
+  const loadDiff = useMutation({
+    mutationFn: (runId: string) => api.getDiff(runId),
+    onSuccess: (data) => {
+      setDiffData(data)
+      setShowDiffModal(true)
+    },
+    onError: (e) => alert((e as Error).message),
   })
 
   if (isLoading) {
@@ -128,19 +151,119 @@ export default function Publish() {
             </div>
           ) : (
             runs.map((r: any) => (
-              <div key={r.id} className="run-row">
-                <span className={`run-status run-${r.outcome}`}>{r.outcome}</span>
-                <span style={{ flex: 1 }}>
-                  by {r.initiated_by} · {r.shows_published} shows · {r.episodes_published} episodes
+              <div key={r.id} className="run-row" style={{ marginBottom: 8 }}>
+                <span className={`run-status run-${r.outcome}`} style={{ marginRight: 8 }}>
+                  {r.outcome}
                 </span>
-                <span style={{ fontSize: 12, color: 'var(--color-muted)' }}>
-                  {new Date(r.started_at).toLocaleString()}
+                <span style={{ flex: 1, marginRight: 8 }}>
+                  by {r.initiated_by} · {r.shows_published} shows · {r.episodes_published} episodes · {new Date(r.started_at).toLocaleString()}
                 </span>
+                <button
+                  className="btn"
+                  style={{ padding: '2px 8px', fontSize: 11, marginRight: 4 }}
+                  onClick={() => {
+                    if (confirm('Load diff for this run?')) loadDiff.mutate(r.id)
+                  }}
+                  disabled={loadDiff.isPending}
+                >
+                  View Diff
+                </button>
+                {r.outcome === 'success' && (
+                  <button
+                    className="btn btn-danger"
+                    style={{ padding: '2px 8px', fontSize: 11 }}
+                    onClick={() => {
+                      if (confirm('Roll back to this run? This will replace the live catalogue with this version.')) {
+                        rollback.mutate(r.id)
+                      }
+                    }}
+                    disabled={rollback.isPending}
+                  >
+                    Rollback
+                  </button>
+                )}
               </div>
             ))
           )}
         </div>
       </div>
+
+      {showDiffModal && diffData && (
+        <div style={modalBackdrop}>
+          <div className="card" style={{ ...modalBox, width: '80%', maxWidth: 800 }}>
+            <div className="card-header">Publish Diff</div>
+            <div className="card-body">
+              <h3>Changes Summary</h3>
+              <div style={{ marginBottom: 16 }}>
+                <strong>Added shows:</strong> {diffData.added_shows?.length || 0}
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <strong>Removed shows:</strong> {diffData.removed_shows?.length || 0}
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <strong>Changed shows:</strong> {diffData.changed_shows?.length || 0}
+              </div>
+
+              {diffData.added_shows && diffData.added_shows.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <h4>Added Shows</h4>
+                  <ul>
+                    {diffData.added_shows.map((slug: string) => (
+                      <li key={slug}>{slug}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {diffData.removed_shows && diffData.removed_shows.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <h4>Removed Shows</h4>
+                  <ul>
+                    {diffData.removed_shows.map((slug: string) => (
+                      <li key={slug}>{slug}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {diffData.changed_shows && diffData.changed_shows.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <h4>Changed Shows</h4>
+                  {diffData.changed_shows.map((c: any) => (
+                    <div key={c.slug} style={{ marginBottom: 8, padding: 8, border: '1px solid var(--color-border)', borderRadius: 4 }}>
+                      <strong>{c.slug}</strong>
+                      <div>Episode count changed: {c.old_episodes} → {c.new_episodes}</div>
+                      <div>Section changed: {c.old_section || '(none)'} → {c.new_section || '(none)'}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  setShowDiffModal(false)
+                  setDiffData(null)
+                }}
+                style={{ width: '100%' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
+
+const modalBackdrop: React.CSSProperties = {
+  position: 'fixed',
+  inset: 0,
+  background: 'rgba(0,0,0,.5)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: 1000,
+}
+const modalBox: React.CSSProperties = { width: 480, maxHeight: '90vh', overflowY: 'auto' }

@@ -4,12 +4,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import ArtworkSlot from '../components/ArtworkSlot'
 
+const SECTIONS = ['featured', 'series', 'minisodes', 'songs']
+const CATEGORIES = [
+  'adventure', 'folk', 'friendship', 'india', 'language', 'learning',
+  'maths', 'music', 'nature', 'reading', 'science', 'singalong',
+  'stories', 'travel', 'values',
+]
+
 const LANGUAGES = ['en', 'hi']
 
 export default function ShowDetail() {
   const { id } = useParams<{ id: string }>()
   const queryClient = useQueryClient()
   const [episodeForm, setEpisodeForm] = useState<{ seasonId: string; showId: string } | null>(null)
+  const [editShowForm, setEditShowForm] = useState<{ title: string; section: string; categories: string[] } | null>(null)
 
   const {
     data: show,
@@ -32,7 +40,11 @@ export default function ShowDetail() {
 
   const updateShow = useMutation({
     mutationFn: (body: any) => api.updateShow(id!, body),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['show', id] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['show', id] })
+      setEditShowForm(null)
+    },
+    onError: (e) => alert((e as Error).message),
   })
 
   const togglePublish = () => {
@@ -50,6 +62,25 @@ export default function ShowDetail() {
         <Link to="/shows" style={{ fontSize: 13 }}>
           ← Back to shows
         </Link>
+        <div style={{ marginTop: 8 }}>
+          <button
+            className="btn"
+            style={{
+              marginRight: 8,
+              padding: '4px 8px',
+              fontSize: 12,
+            }}
+            onClick={() =>
+              setEditShowForm({
+                title: show.title,
+                section: show.section,
+                categories: show.categories || [],
+              })
+            }
+          >
+            Edit Show Details
+          </button>
+        </div>
       </div>
 
       <div className="card" style={{ marginBottom: 16 }}>
@@ -151,6 +182,17 @@ export default function ShowDetail() {
           seasonId={episodeForm.seasonId}
           showId={episodeForm.showId}
           onClose={() => setEpisodeForm(null)}
+        />
+      )}
+      {editShowForm && (
+        <EditShowModal
+          showId={show.id}
+          initialTitle={editShowForm.title}
+          initialSection={editShowForm.section}
+          initialCategories={editShowForm.categories}
+          onClose={() => setEditShowForm(null)}
+          onSave={(body) => updateShow.mutate(body)}
+          isPending={updateShow.isPending}
         />
       )}
     </div>
@@ -322,3 +364,123 @@ const modalBackdrop: React.CSSProperties = {
   zIndex: 1000,
 }
 const modalBox: React.CSSProperties = { width: 480, maxHeight: '90vh', overflowY: 'auto' }
+
+function EditShowModal({
+  showId,
+  initialTitle,
+  initialSection,
+  initialCategories,
+  onClose,
+  onSave,
+  isPending,
+}: {
+  showId: string
+  initialTitle: string
+  initialSection: string
+  initialCategories: string[]
+  onClose: () => void
+  onSave: (body: { id: string; title: string; section: string; categories: string[] }) => void
+  isPending: boolean
+}) {
+  const [form, setForm] = useState({
+    title: initialTitle,
+    section: initialSection,
+    categories: initialCategories,
+  })
+  const [err, setErr] = useState('')
+
+  return (
+    <div style={modalBackdrop}>
+      <div className="card" style={modalBox}>
+        <div className="card-header">Edit Show</div>
+        <div className="card-body">
+          {err && <div className="alert alert-error">{err}</div>}
+          <div className="form-group">
+            <label className="form-label">Title</label>
+            <input
+              className="form-input"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Section</label>
+            <select
+              className="form-select"
+              value={form.section}
+              onChange={(e) => setForm({ ...form, section: e.target.value })}
+            >
+              {SECTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Categories</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {CATEGORIES.map((c) => {
+                const active = form.categories.includes(c)
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    className="btn"
+                    style={{
+                      padding: '3px 8px',
+                      fontSize: 12,
+                      ...(active && {
+                        background: 'var(--color-primary)',
+                        color: '#fff',
+                        borderColor: 'var(--color-primary)',
+                      }),
+                    }}
+                    onClick={() =>
+                      setForm({
+                        ...form,
+                        categories: active
+                          ? form.categories.filter((x) => x !== c)
+                          : [...form.categories, c],
+                      })
+                    }
+                  >
+                    {c}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+        <div
+          style={{
+            padding: 12,
+            borderTop: '1px solid var(--color-border)',
+            display: 'flex',
+            gap: 8,
+            justifyContent: 'flex-end',
+          }}
+        >
+          <button className="btn" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            className="btn btn-primary"
+            disabled={isPending}
+            onClick={() => {
+              if (!form.title.trim()) {
+                setErr('Title is required.')
+                return
+              }
+              setErr('')
+              onSave({ id: showId, title: form.title, section: form.section, categories: form.categories })
+            }}
+          >
+            {isPending ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
