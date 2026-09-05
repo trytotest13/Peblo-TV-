@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Gallery - Peblo TV</title>
+    <style>
+      body { font-family: sans-serif; background: #0a0a0a; color: #fff; margin: 0; padding: 24px; }
+      h1 { font-size: 1.5rem; }
+      p { color: #aaa; }
+      .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-top: 20px; }
+      figure { background: #161616; border: 1px solid #333; border-radius: 8px; padding: 12px; margin: 0; }
+      img { width: 100%; height: auto; border-radius: 4px; display: block; background: #222; }
+      figcaption { margin-top: 8px; font-size: 0.85rem; color: #ccc; word-break: break-all; }
+      a { color: #7ab8ff; }
+    </style>
+  </head>
+  <body>
+    <h1>Document Images Gallery</h1>
+    <p>All images copied from <code>documaent/</code> to <code>/images/</code>. Open this page at <a href="/gallery.html">/gallery.html</a>.</p>
+    <div class="gallery">
+      <figure>
+        <img src="/images/banner_good.jpg" alt="banner_good.jpg" />
+        <figcaption>banner_good.jpg</figcaption>
+      </figure>
+      <figure>
+        <img src="/images/banner_too_big.png" alt="banner_too_big.png" />
+        <figcaption>banner_too_big.png</figcaption>
+      </figure>
+      <figure>
+        <img src="/images/poster_good.jpg" alt="poster_good.jpg" />
+        <figcaption>poster_good.jpg</figcaption>
+      </figure>
+      <figure>
+        <img src="/images/poster_wrong_ratio.jpg" alt="poster_wrong_ratio.jpg" />
+        <figcaption>poster_wrong_ratio.jpg</figcaption>
+      </figure>
+      <figure>
+        <img src="/images/thumb_good.jpg" alt="thumb_good.jpg" />
+        <figcaption>thumb_good.jpg</figcaption>
+      </figure>
+      <figure>
+        <img src="/images/thumb_tiny.jpg" alt="thumb_tiny.jpg" />
+        <figcaption>thumb_tiny.jpg</figcaption>
+      </figure>
+    </div>
+  </body>
+</html>
