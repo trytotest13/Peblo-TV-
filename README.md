@@ -1,4 +1,4 @@
-# Peblo TV — CMS
+# Peblo TV - CMS
 
 Internal admin interface for content editors. Lets editors:
 
