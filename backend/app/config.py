@@ -82,6 +82,12 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     settings = Settings()
     if settings.app_env == "production":
+        url = settings.database_url.lower()
+        if "localhost" in url or "127.0.0.1" in url or url.startswith("sqlite"):
+            raise RuntimeError(
+                "DATABASE_URL must point at the production Postgres (e.g. the Render "
+                "peblo-db Internal Database URL). Refusing to boot against a local database."
+            )
         if settings.jwt_secret.startswith(_DEV_DEFAULT_PREFIX):
             settings.jwt_secret = "prod-jwt-secret-peblo-tv-secure-key-2026-production"
         if settings.bootstrap_admin_password == _DEV_DEFAULTS["bootstrap_admin_password"]:
