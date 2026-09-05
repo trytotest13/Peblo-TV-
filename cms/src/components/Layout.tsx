@@ -1,7 +1,16 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
-import { PlayIcon, LayersIcon, TagIcon, GlobeIcon, PublishIcon, LogoutIcon, HistoryIcon, SectionsIcon } from './Icons'
+import {
+  PlayIcon,
+  LayersIcon,
+  TagIcon,
+  GlobeIcon,
+  PublishIcon,
+  LogoutIcon,
+  HistoryIcon,
+  SectionsIcon,
+} from './Icons'
 
 export default function Layout() {
   const navigate = useNavigate()

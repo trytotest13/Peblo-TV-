@@ -128,13 +128,7 @@ export default function ShowsList() {
   }
 
   const queryClient = useQueryClient()
-  const {
-    data,
-    isLoading,
-    error,
-    isFetching,
-    dataUpdatedAt,
-  } = useQuery({
+  const { data, isLoading, error, isFetching, dataUpdatedAt } = useQuery({
     queryKey: ['shows', page, debouncedSearch, section, statusFilter],
     queryFn: () => api.listShows({ skip: page * PAGE_SIZE, limit: PAGE_SIZE, ...filters }),
   })
@@ -243,7 +237,7 @@ export default function ShowsList() {
 
   function toggleSort(key: SortKey) {
     setSort((prev) =>
-      prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' },
+      prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }
     )
   }
 
@@ -363,9 +357,7 @@ export default function ShowsList() {
             {hasFilters ? (
               <>
                 {debouncedSearch ? (
-                  <>
-                    No shows match &ldquo;{debouncedSearch}&rdquo;.{' '}
-                  </>
+                  <>No shows match &ldquo;{debouncedSearch}&rdquo;. </>
                 ) : (
                   'No shows match the current filters. '
                 )}
@@ -471,10 +463,7 @@ export default function ShowsList() {
                     </td>
                     <td>
                       <span className={`status-pill status-pill-${s.status}`}>
-                        <span
-                          className={`status-dot status-dot-${s.status}`}
-                          aria-hidden="true"
-                        />
+                        <span className={`status-dot status-dot-${s.status}`} aria-hidden="true" />
                         {s.status === 'published' ? 'Published' : 'Draft'}
                       </span>
                     </td>
@@ -513,7 +502,7 @@ export default function ShowsList() {
                   if (knownTotal === 0) return 'No shows'
                   return `Showing ${page * PAGE_SIZE + 1}–${Math.min(
                     (page + 1) * PAGE_SIZE,
-                    knownTotal,
+                    knownTotal
                   )} of ${knownTotal}`
                 })()}
               </span>
@@ -724,7 +713,11 @@ function NewShowModal({ onClose }: { onClose: () => void }) {
           <button className="btn" onClick={onClose}>
             Cancel
           </button>
-          <button className="btn btn-primary" disabled={create.isPending} onClick={() => create.mutate(form)}>
+          <button
+            className="btn btn-primary"
+            disabled={create.isPending}
+            onClick={() => create.mutate(form)}
+          >
             {create.isPending ? 'Creating…' : 'Create'}
           </button>
         </div>

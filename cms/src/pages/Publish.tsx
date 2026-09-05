@@ -820,7 +820,11 @@ function ScheduleModal({
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="card" style={{ width: 480, maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
+      <div
+        className="card"
+        style={{ width: 480, maxHeight: '90vh', overflowY: 'auto' }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="card-header">{isEdit ? 'Edit scheduled publish' : 'Schedule publish'}</div>
         <div className="card-body">
           {err && <div className="alert alert-error">{err}</div>}
@@ -1060,7 +1064,11 @@ function HistoryTab() {
                         {h.result && (
                           <button
                             className={`btn btn-sm run-${h.result}`}
-                            style={{ padding: '2px 8px', fontSize: '11px', textTransform: 'capitalize' }}
+                            style={{
+                              padding: '2px 8px',
+                              fontSize: '11px',
+                              textTransform: 'capitalize',
+                            }}
                             onClick={() => setExpanded(expanded === idx ? null : idx)}
                           >
                             {h.result}

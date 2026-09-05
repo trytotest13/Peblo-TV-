@@ -1232,12 +1232,6 @@ select option,
   border-radius: 6px;
   gap: 8px;
 }
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  background: #18181f;
-  border-color: #2a2a33;
-}
 .filter-bar .form-input::placeholder {
   color: #a1a1aa;
 }

@@ -46,7 +46,11 @@ function mockFetch(responses: Record<string, unknown>) {
     }
     calls.push({ url: raw, method, body })
     const basePath = raw.split('?')[0]
-    const hit = responses[raw] ?? responses[basePath] ?? responses[`${method} ${raw}`] ?? responses[`${method} ${basePath}`]
+    const hit =
+      responses[raw] ??
+      responses[basePath] ??
+      responses[`${method} ${raw}`] ??
+      responses[`${method} ${basePath}`]
     if (hit !== undefined) {
       if (hit instanceof Error) return Promise.reject(hit)
       return Promise.resolve({

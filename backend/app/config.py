@@ -8,7 +8,6 @@ from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 # ---------------------------------------------------------------------------
 # Dev-only defaults — safe-ish local values used when the env is missing.
 # Production environments MUST set these explicitly; pydantic rejects the

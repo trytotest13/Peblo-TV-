@@ -1,7 +1,6 @@
 """Content concern and support feedback report router."""
 import logging
 import uuid
-from typing import Optional
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field
@@ -13,8 +12,8 @@ router = APIRouter(prefix="/report", tags=["report"])
 
 class ContentReportRequest(BaseModel):
     category: str = Field(..., max_length=50, description="Category of report (e.g. content_issue, bug, privacy)")
-    target_id: Optional[str] = Field(None, max_length=100, description="ID or slug of show/episode if applicable")
-    reporter_email: Optional[EmailStr] = Field(None, description="Optional contact email for follow-up")
+    target_id: str | None = Field(None, max_length=100, description="ID or slug of show/episode if applicable")
+    reporter_email: EmailStr | None = Field(None, description="Optional contact email for follow-up")
     description: str = Field(..., min_length=5, max_length=2000, description="Detailed explanation")
 
 

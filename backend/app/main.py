@@ -20,7 +20,18 @@ from app.auth.security import hash_password
 from app.config import get_settings
 from app.db import AsyncSessionLocal, async_engine
 from app.models.user import User
-from app.routers import admin, artwork, auth, catalog, episodes, publish, report, seasons, show_list, shows
+from app.routers import (
+    admin,
+    artwork,
+    auth,
+    catalog,
+    episodes,
+    publish,
+    report,
+    seasons,
+    show_list,
+    shows,
+)
 
 settings = get_settings()
 logging.basicConfig(level=settings.log_level)

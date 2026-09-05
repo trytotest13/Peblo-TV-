@@ -21,7 +21,6 @@ from app.auth.deps import DbSession, require_editor
 from app.models.episode import Episode
 from app.models.publish_job import PublishJob, PublishSchedule
 from app.models.publish_run import PublishRun
-from app.models.season import Season
 from app.models.show import Show
 from app.models.user import User
 from app.schemas.publish import (
@@ -406,8 +405,8 @@ async def publish_history(
     cursor: int = Query(default=0, ge=0),
     limit: int = Query(default=20, ge=1, le=100),
     type: str | None = Query(default=None, pattern="^(show|episode|catalogue)$"),
-    from_date: datetime | None = Query(default=None),
-    to_date: datetime | None = Query(default=None),
+    from_date: datetime | None = Query(default=None),  # noqa: B008 — FastAPI param declaration
+    to_date: datetime | None = Query(default=None),  # noqa: B008 — FastAPI param declaration
 ):
     """Paginated history of everything that published (or failed trying)."""
     items: list[HistoryItem] = []

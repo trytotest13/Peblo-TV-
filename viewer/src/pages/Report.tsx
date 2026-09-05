@@ -151,8 +151,7 @@ export default function Report() {
           >
             <h2 style={{ fontSize: 18, color: '#34d399', marginBottom: 8 }}>Concern Submitted</h2>
             <p style={{ fontSize: 14, color: '#a49cc0', marginBottom: 20 }}>
-              Thank you for helping keep Peblo TV safe. Our moderation team will review this
-              report.
+              Thank you for helping keep Peblo TV safe. Our moderation team will review this report.
             </p>
             <Link to="/" className="btn btn-primary" style={{ display: 'inline-block' }}>
               Back to Home
