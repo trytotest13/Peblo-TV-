@@ -3,25 +3,9 @@ set -e
 
 cd /app
 
-echo "[entrypoint] Creating database tables (idempotent)..."
-python -c "
-import asyncio
-from app.db import async_engine, Base
-import app.models.show
-import app.models.season
-import app.models.episode
-import app.models.artwork
-import app.models.publish_run
-import app.models.user
-
-async def main():
-    async with async_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    await async_engine.dispose()
-    print('[entrypoint] Tables ready.')
-
-asyncio.run(main())
-"
+echo "[entrypoint] Applying database migrations..."
+alembic upgrade head
+echo "[entrypoint] Database migrations complete."
 
 echo "[entrypoint] Seeding database if empty..."
 python -c "

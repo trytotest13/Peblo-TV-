@@ -6,9 +6,21 @@ import ArtworkSlot from '../components/ArtworkSlot'
 
 const SECTIONS = ['featured', 'series', 'minisodes', 'songs']
 const CATEGORIES = [
-  'adventure', 'folk', 'friendship', 'india', 'language', 'learning',
-  'maths', 'music', 'nature', 'reading', 'science', 'singalong',
-  'stories', 'travel', 'values',
+  'adventure',
+  'folk',
+  'friendship',
+  'india',
+  'language',
+  'learning',
+  'maths',
+  'music',
+  'nature',
+  'reading',
+  'science',
+  'singalong',
+  'stories',
+  'travel',
+  'values',
 ]
 
 const LANGUAGES = ['en', 'hi']
@@ -17,7 +29,11 @@ export default function ShowDetail() {
   const { id } = useParams<{ id: string }>()
   const queryClient = useQueryClient()
   const [episodeForm, setEpisodeForm] = useState<{ seasonId: string; showId: string } | null>(null)
-  const [editShowForm, setEditShowForm] = useState<{ title: string; section: string; categories: string[] } | null>(null)
+  const [editShowForm, setEditShowForm] = useState<{
+    title: string
+    section: string
+    categories: string[]
+  } | null>(null)
 
   const {
     data: show,
@@ -432,9 +448,9 @@ function EditShowModal({
                       padding: '3px 8px',
                       fontSize: 12,
                       ...(active && {
-                        background: 'var(--color-primary)',
-                        color: '#fff',
-                        borderColor: 'var(--color-primary)',
+                        background: 'var(--color-accent)',
+                        color: 'var(--color-on-accent)',
+                        borderColor: 'var(--color-accent)',
                       }),
                     }}
                     onClick={() =>
@@ -474,7 +490,12 @@ function EditShowModal({
                 return
               }
               setErr('')
-              onSave({ id: showId, title: form.title, section: form.section, categories: form.categories })
+              onSave({
+                id: showId,
+                title: form.title,
+                section: form.section,
+                categories: form.categories,
+              })
             }}
           >
             {isPending ? 'Saving...' : 'Save'}

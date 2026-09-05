@@ -49,58 +49,40 @@ def copy_to_storage(filename: str, artwork_type: str) -> str:
     return key
 
 
-async def seed_artwork_for_show(db: AsyncSession, show: Show):
-    """Create poster/banner/thumbnail artwork rows for a show."""
+async def seed_artwork_for(db: AsyncSession, show: Show | None = None, episode: Episode | None = None):
+    """Create poster/banner/thumbnail artwork rows for a show or episode."""
     for filename, art_type, w, h in ARTWORK_FILES:
         # Skip if already exists
-        existing = await db.execute(
-            select(Artwork).where(
-                Artwork.show_id == show.id,
-                Artwork.episode_id.is_(None),
-                Artwork.artwork_type == art_type,
-            )
+        stmt = select(Artwork).where(Artwork.artwork_type == art_type)
+        stmt = stmt.where(
+            Artwork.show_id == (show.id if show else None),
+            Artwork.episode_id == (episode.id if episode else None),
         )
+        existing = await db.execute(stmt)
         if existing.scalar_one_or_none():
             continue
 
         key = copy_to_storage(filename, art_type)
         file_size_kb = (STORAGE / key).stat().st_size // 1024
-        art = Artwork(
-            show_id=show.id,
-            episode_id=None,
-            artwork_type=art_type,
-            storage_key=key,
-            width_px=w,
-            height_px=h,
-            file_size_kb=file_size_kb,
+        db.add(
+            Artwork(
+                show_id=show.id if show else None,
+                episode_id=episode.id if episode else None,
+                artwork_type=art_type,
+                storage_key=key,
+                width_px=w,
+                height_px=h,
+                file_size_kb=file_size_kb,
+            )
         )
-        db.add(art)
+
+
+async def seed_artwork_for_show(db: AsyncSession, show: Show):
+    await seed_artwork_for(db, show=show)
 
 
 async def seed_artwork_for_episode(db: AsyncSession, episode: Episode):
-    """Create poster/banner/thumbnail artwork rows for an episode."""
-    for filename, art_type, w, h in ARTWORK_FILES:
-        existing = await db.execute(
-            select(Artwork).where(
-                Artwork.episode_id == episode.id,
-                Artwork.artwork_type == art_type,
-            )
-        )
-        if existing.scalar_one_or_none():
-            continue
-
-        key = copy_to_storage(filename, art_type)
-        file_size_kb = (STORAGE / key).stat().st_size // 1024
-        art = Artwork(
-            show_id=None,
-            episode_id=episode.id,
-            artwork_type=art_type,
-            storage_key=key,
-            width_px=w,
-            height_px=h,
-            file_size_kb=file_size_kb,
-        )
-        db.add(art)
+    await seed_artwork_for(db, episode=episode)
 
 
 async def main():

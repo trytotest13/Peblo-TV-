@@ -1,10 +1,18 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
-import { fetchCatalog, searchCatalog, IMG } from '../api'
+import { fetchCatalog, searchCatalog, IMG, type Show } from '../api'
 
-const SECTIONS = ['featured', 'series', 'minisodes', 'songs']
-const LANGUAGES = ['en', 'hi']
+const SECTIONS = ['featured', 'series', 'minisodes']
+const LANGUAGES = ['en', 'hi'] as const
+
+const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+
+function showHasLanguage(show: Show, lang: string): boolean {
+  return show.seasons.some((season) =>
+    season.episodes.some((ep) => ep.languages.some((l) => l.language === lang))
+  )
+}
 
 export default function Home() {
   const [search, setSearch] = useState('')
@@ -13,7 +21,6 @@ export default function Home() {
   const [activeLang, setActiveLang] = useState('')
   const [activeCat, setActiveCat] = useState('')
   const [scrolled, setScrolled] = useState(false)
-  const topbarRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -21,7 +28,12 @@ export default function Home() {
   const handleSearchChange = (val: string) => {
     setSearch(val)
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => setDebouncedSearch(val), 400)
+    debounceRef.current = setTimeout(() => setDebouncedSearch(val.trim()), 400)
+  }
+
+  const applySearchNow = () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    setDebouncedSearch(search.trim())
   }
 
   useEffect(() => {
@@ -32,13 +44,35 @@ export default function Home() {
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50)
-    window.addEventListener('scroll', onScroll)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  // Use search query when active, otherwise use the full catalog
-  const { data: catalog, isLoading } = useQuery({
-    queryKey: ['catalog', debouncedSearch],
+  // Global `/` keyboard shortcut → focus the search input (unless the user
+  // is already typing in another field).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== '/') return
+      const t = e.target as HTMLElement | null
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) {
+        return
+      }
+      e.preventDefault()
+      const input = document.querySelector<HTMLInputElement>('.search-bar input')
+      input?.focus()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  const {
+    data: catalog,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ['catalog', debouncedSearch, activeSection, activeCat, activeLang],
     queryFn: () =>
       debouncedSearch
         ? searchCatalog({
@@ -50,24 +84,34 @@ export default function Home() {
         : fetchCatalog(),
   })
 
-  const shows = catalog?.shows || []
-  const featured = shows.find((s: any) => s.section === 'featured') || shows[0]
+  const shows: Show[] = catalog?.shows || []
+  const featured = shows.find((s) => s.section === 'featured') || shows[0]
 
-  // Apply section/language/category filters on top of catalog (or search results)
-  const filteredShows = shows.filter((s: any) => {
-    if (activeSection && s.section !== activeSection) return false
-    if (activeCat && !s.categories?.includes(activeCat)) return false
-    if (
-      activeLang &&
-      !s.seasons?.some((se: any) =>
-        se.episodes?.some((ep: any) => ep.languages?.some((l: any) => l.language === activeLang))
-      )
-    )
-      return false
-    return true
-  })
+  // Backend already applies section/category/language when searching —
+  // client-side filtering only applies to the full catalog.
+  const isSearching = debouncedSearch.length > 0
+  const filteredShows: Show[] = isSearching
+    ? shows
+    : shows.filter((s) => {
+        if (activeSection && s.section !== activeSection) return false
+        if (activeCat && !s.categories?.includes(activeCat)) return false
+        if (activeLang && !showHasLanguage(s, activeLang)) return false
+        return true
+      })
 
-  const sections = activeSection ? [activeSection] : SECTIONS
+  // Categories derived from data (curated whitelist)
+  const ALLOWED_CATEGORIES = ['adventure', 'folk', 'learning', 'music', 'nature', 'science']
+  const visibleCategories: string[] = [...new Set(shows.flatMap((s) => s.categories || []))]
+    .sort()
+    .filter((c) => ALLOWED_CATEGORIES.includes(c))
+
+  // Browse shows the curated sections; search shows whatever sections the results contain
+  // (so removed sections like songs can still surface via search).
+  const sections = activeSection
+    ? [activeSection]
+    : isSearching
+      ? [...new Set(filteredShows.map((s) => s.section))]
+      : SECTIONS
 
   const clearFilters = () => {
     setActiveSection('')
@@ -77,36 +121,99 @@ export default function Home() {
     setDebouncedSearch('')
   }
 
-  const hasFilters = debouncedSearch || activeSection || activeLang || activeCat
+  const hasFilters = Boolean(debouncedSearch || activeSection || activeLang || activeCat)
+  const showHero = Boolean(featured && !hasFilters)
+
+  const goHome = () => {
+    clearFilters()
+    navigate('/')
+  }
 
   return (
-    <div>
-      {/* Topbar */}
-      <div ref={topbarRef} className={`topbar ${scrolled ? 'scrolled' : ''}`}>
-        <span className="topbar-logo">Peblo TV</span>
-        <div className="topbar-links">
-          <a href="#">Home</a>
-        </div>
+    <div className="home-page">
+      {/* Topbar — transparent only while hero is visible AND page is at top */}
+      <div className={`topbar${scrolled ? ' scrolled' : ''}${showHero ? ' hero-active' : ''}`}>
+        <button className="topbar-logo" onClick={goHome} aria-label="Peblo TV home">
+          Peblo TV
+        </button>
+        <nav className="topbar-nav" aria-label="Primary navigation">
+          <button className={`topbar-link${!activeSection ? ' active' : ''}`} onClick={goHome}>
+            Home
+          </button>
+          <button
+            className={`topbar-link${activeSection === 'series' ? ' active' : ''}`}
+            onClick={() => setActiveSection('series')}
+          >
+            Series
+          </button>
+          <button
+            className={`topbar-link${activeSection === 'featured' ? ' active' : ''}`}
+            onClick={() => setActiveSection('featured')}
+          >
+            Explore
+          </button>
+        </nav>
         <div className="search-bar">
-          <span>🔍</span>
+          <svg
+            className="search-icon"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
           <input
-            placeholder="Search shows, episodes..."
+            placeholder="Search by title, slug, or keyword"
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearchChange(search)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') applySearchNow()
+            }}
           />
+          {!search && (
+            <kbd className="search-kbd" aria-hidden="true">
+              /
+            </kbd>
+          )}
+          {search && (
+            <button
+              type="button"
+              className="search-clear"
+              aria-label="Clear search"
+              onClick={() => {
+                setSearch('')
+                setDebouncedSearch('')
+              }}
+            >
+              ×
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Hero */}
-      {featured && !hasFilters && (
+      {/* Hero — hidden entirely when search/filters are active */}
+      {showHero && (
         <div className="hero">
-          <div
-            className="hero-bg"
-            style={{ backgroundImage: `url(${IMG(featured.banner_url || featured.poster_url)})` }}
-          />
+          {IMG(featured.banner_url || featured.poster_url) ? (
+            <div
+              className="hero-bg"
+              style={{
+                backgroundImage: `url(${IMG(featured.banner_url || featured.poster_url)})`,
+              }}
+            />
+          ) : (
+            <div className="hero-bg-fallback" />
+          )}
           <div className="hero-gradient" />
           <div className="hero-content">
+            <div className="hero-tagline">Big Stories · Small Hearts · Brighter Tomorrows</div>
             <div className="hero-title">{featured.title}</div>
             <div className="hero-synopsis">{featured.synopsis}</div>
             <button className="hero-btn" onClick={() => navigate(`/show/${featured.slug}`)}>
@@ -116,38 +223,44 @@ export default function Home() {
         </div>
       )}
 
-      {/* Filters */}
+      {/* Filter row — sticky under topbar, horizontally scrollable */}
       <div className="filter-row">
-        <button
-          className={`filter-pill ${!activeSection && !activeLang && !activeCat ? 'active' : ''}`}
-          onClick={clearFilters}
-        >
+        <button className={`filter-pill${!hasFilters ? ' active' : ''}`} onClick={clearFilters}>
           All
         </button>
         {SECTIONS.map((s) => (
           <button
             key={s}
-            className={`filter-pill ${activeSection === s ? 'active' : ''}`}
+            className={`filter-pill${activeSection === s ? ' active' : ''}`}
             onClick={() => setActiveSection(activeSection === s ? '' : s)}
           >
-            {s.charAt(0).toUpperCase() + s.slice(1)}
+            {titleCase(s)}
           </button>
         ))}
-        <span style={{ width: 1, background: 'rgba(255,255,255,.1)', margin: '0 4px' }} />
+        <span className="filter-divider" />
         {LANGUAGES.map((l) => (
           <button
             key={l}
-            className={`filter-pill ${activeLang === l ? 'active' : ''}`}
+            className={`filter-pill${activeLang === l ? ' active' : ''}`}
             onClick={() => setActiveLang(activeLang === l ? '' : l)}
           >
             {l === 'en' ? 'English' : 'हिंदी'}
           </button>
         ))}
+        {visibleCategories.map((c) => (
+          <button
+            key={c}
+            className={`filter-pill${activeCat === c ? ' active' : ''}`}
+            onClick={() => setActiveCat(activeCat === c ? '' : c)}
+          >
+            {c.charAt(0).toUpperCase() + c.slice(1)}
+          </button>
+        ))}
       </div>
 
-      {/* Loading */}
+      {/* Loading — shimmer skeleton */}
       {isLoading && (
-        <div style={{ padding: 40 }}>
+        <div className="loading-block">
           <div
             className="loading-skeleton"
             style={{ height: 220, width: '100%', marginBottom: 12 }}
@@ -164,69 +277,133 @@ export default function Home() {
         </div>
       )}
 
-      {/* Empty */}
-      {!isLoading && filteredShows.length === 0 && (
+      {/* Error */}
+      {!isLoading && isError && (
         <div className="empty-state">
+          <h2>Something went wrong</h2>
+          <p>We couldn&apos;t load the catalogue. Please try again.</p>
+          <button
+            className="filter-pill active"
+            style={{ marginTop: 16 }}
+            onClick={() => refetch()}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Empty */}
+      {!isLoading && !isError && filteredShows.length === 0 && (
+        <div className="empty-state">
+          <div className="empty-illustration" aria-hidden="true">
+            ⌁
+          </div>
           <h2>No results found</h2>
-          <p>Try different search terms or clear your filters.</p>
+          <p>
+            We couldn&apos;t find any shows matching your filters.
+            <br />
+            Try changing or clearing your filters.
+          </p>
           <button className="filter-pill active" style={{ marginTop: 16 }} onClick={clearFilters}>
             Clear filters
           </button>
         </div>
       )}
 
-      {/* Rows by section */}
-      {!hasFilters ? (
+      {/* Section rows — same layout with or without filters; empty rows removed */}
+      {!isLoading &&
+        !isError &&
         sections.map((section) => {
-          const sectionShows = filteredShows.filter((s: any) => s.section === section)
+          let sectionShows = filteredShows.filter((s) => s.section === section)
+          // For featured section, if fewer than 5 shows are assigned to featured, curate top shows so row is populated
+          if (
+            section === 'featured' &&
+            sectionShows.length < 5 &&
+            !activeSection &&
+            !activeCat &&
+            !activeLang &&
+            !debouncedSearch
+          ) {
+            sectionShows = filteredShows.slice(0, 9)
+          }
           if (sectionShows.length === 0) return null
           return (
             <div key={section} className="section-row">
-              <div className="section-title">
-                {section.charAt(0).toUpperCase() + section.slice(1)}
+              <div className="section-header">
+                <h2 className="section-title">
+                  {isSearching
+                    ? `${titleCase(section)} — Results for "${debouncedSearch}"`
+                    : titleCase(section)}
+                  <span className="section-count">{sectionShows.length}</span>
+                </h2>
+                {!isSearching && (
+                  <button
+                    className="see-all-link"
+                    onClick={() => setActiveSection(activeSection === section ? '' : section)}
+                  >
+                    <span>See All</span>
+                    <svg viewBox="0 0 24 24" className="see-all-arrow" aria-hidden="true">
+                      <path
+                        d="M5 12h14M13 6l6 6-6 6"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                )}
               </div>
               <div className="row-scroll">
-                {sectionShows.map((show: any) => (
+                {sectionShows.map((show) => (
                   <ShowCard key={show.slug} show={show} />
                 ))}
               </div>
             </div>
           )
-        })
-      ) : (
-        /* Single combined row for filtered view */
-        <div className="section-row">
-          <div className="section-title">
-            {debouncedSearch ? `Results for "${debouncedSearch}"` : 'Shows'}
-            {activeSection && ` — ${activeSection}`}
-            {activeLang && ` — ${activeLang}`}
-          </div>
-          <div className="row-scroll">
-            {filteredShows.map((show: any) => (
-              <ShowCard key={show.slug} show={show} />
-            ))}
-          </div>
-        </div>
-      )}
+        })}
     </div>
   )
 }
 
-function ShowCard({ show }: { show: any }) {
-  const [hovered, setHovered] = useState(false)
+function ShowCard({ show }: { show: Show }) {
+  const src = IMG(show.poster_url || show.thumbnail_url || show.banner_url)
+  const hoverSrc = IMG(show.banner_url || show.thumbnail_url)
+
   return (
-    <Link
-      to={`/show/${show.slug}`}
-      className="show-card"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      <img
-        src={IMG(hovered ? show.banner_url || show.thumbnail_url : show.poster_url) || undefined}
-        alt={show.title}
-        loading="lazy"
-      />
+    <Link to={`/show/${show.slug}`} className="show-card">
+      <div className="show-card-media">
+        <div className="show-card-img-fallback">
+          <span aria-hidden="true">🎬</span>
+        </div>
+        {src && (
+          <img
+            src={src}
+            alt={show.title}
+            loading="lazy"
+            onError={(e) => {
+              ;(e.target as HTMLImageElement).style.display = 'none'
+            }}
+          />
+        )}
+        {hoverSrc && hoverSrc !== src && (
+          <img
+            className="img-hover"
+            src={hoverSrc}
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+            onError={(e) => {
+              ;(e.target as HTMLImageElement).style.display = 'none'
+            }}
+          />
+        )}
+      </div>
       <div className="show-card-title">{show.title}</div>
+      <div className="show-card-meta">
+        {titleCase(show.section)} <span>·</span> {show.rating || 'U'}
+      </div>
     </Link>
   )
 }

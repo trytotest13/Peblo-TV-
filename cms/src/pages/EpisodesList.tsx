@@ -1,8 +1,25 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
+import Select, { type SelectOption } from '../components/Select'
+import { StatusIcon, FilterIcon, SectionsIcon } from '../components/Icons'
 
 const LANGUAGES = ['en', 'hi']
+
+const STATUS_OPTIONS: SelectOption[] = [
+  { value: '', label: 'All statuses', icon: <StatusIcon size={16} /> },
+  { value: 'published', label: 'Published', icon: <StatusIcon size={16} /> },
+  { value: 'draft', label: 'Draft', icon: <StatusIcon size={16} /> },
+]
+
+const LANGUAGE_OPTIONS: SelectOption[] = [
+  { value: '', label: 'All languages', icon: <SectionsIcon size={16} /> },
+  ...LANGUAGES.map<SelectOption>((l) => ({
+    value: l,
+    label: l.toUpperCase(),
+    icon: <FilterIcon size={16} />,
+  })),
+]
 
 export default function EpisodesList() {
   const queryClient = useQueryClient()
@@ -46,11 +63,13 @@ export default function EpisodesList() {
       <h2 style={{ margin: '0 0 16px' }}>Episodes</h2>
       <div className="card">
         <div
+          className="filter-bar"
           style={{
             padding: 14,
             borderBottom: '1px solid var(--color-border)',
             display: 'flex',
             gap: 8,
+            alignItems: 'center',
           }}
         >
           <input
@@ -63,27 +82,18 @@ export default function EpisodesList() {
           {isFetching && !isLoading && (
             <span style={{ color: 'var(--color-muted)', fontSize: 12 }}>Searching...</span>
           )}
-          <select
-            className="form-select"
+          <Select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">All statuses</option>
-            <option value="published">published</option>
-            <option value="draft">draft</option>
-          </select>
-          <select
-            className="form-select"
+            onChange={setStatusFilter}
+            options={STATUS_OPTIONS}
+            ariaLabel="Filter episodes by status"
+          />
+          <Select
             value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-          >
-            <option value="">All languages</option>
-            {LANGUAGES.map((l) => (
-              <option key={l} value={l}>
-                {l}
-              </option>
-            ))}
-          </select>
+            onChange={setLanguage}
+            options={LANGUAGE_OPTIONS}
+            ariaLabel="Filter episodes by language"
+          />
         </div>
 
         {isLoading ? (
@@ -266,7 +276,9 @@ function EditEpisodeModal({
             <select
               className="form-select"
               value={form.status}
-              onChange={(e) => setForm({ ...form, status: e.target.value as 'draft' | 'published' })}
+              onChange={(e) =>
+                setForm({ ...form, status: e.target.value as 'draft' | 'published' })
+              }
             >
               <option value="draft">Draft</option>
               <option value="published">Published</option>

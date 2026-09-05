@@ -5,7 +5,7 @@ import { api } from '../lib/api'
 
 export default function Login() {
   const [email, setEmail] = useState('admin@peblo.local')
-  const [password, setPassword] = useState('admin123')
+  const [password, setPassword] = useState('')
   const navigate = useNavigate()
 
   const login = useMutation({

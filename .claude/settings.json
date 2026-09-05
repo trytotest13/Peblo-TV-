@@ -12,7 +12,13 @@
       "Bash(git commit -m 'Stretch goals: versioned catalogue + rollback + diff + audit log *)",
       "Bash(git commit *)",
       "Bash(python -m pip install ruff)",
-      "Bash(ruff check *)"
+      "Bash(ruff check *)",
+      "Bash(npx vitest *)",
+      "Bash(node -e ' *)",
+      "Bash(curl -sS -m 3 http://localhost:8000/health)",
+      "Bash(curl -sS -m 3 http://localhost:8000/api/shows)",
+      "Bash(curl -sS -m 3 http://localhost:3000/api/shows)",
+      "Bash(curl -sS -m 3 -X PATCH -H \"Content-Type: application/json\" -d '{\"status\":\"draft\"}' http://localhost:3000/api/shows/00000000-0000-0000-0000-000000000000)"
     ]
   }
 }

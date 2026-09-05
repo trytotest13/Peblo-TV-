@@ -5,6 +5,16 @@ function getToken() {
   return localStorage.getItem('peblo_token')
 }
 
+const qs = (params?: Record<string, string | number | undefined>) => {
+  if (!params) return ''
+  const clean: Record<string, string> = {}
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined) clean[k] = String(v)
+  })
+  const s = new URLSearchParams(clean).toString()
+  return s ? '?' + s : ''
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken()
   const headers: Record<string, string> = {
@@ -40,10 +50,9 @@ export const api = {
   me: () => request<{ id: string; email: string; role: string }>('/auth/me'),
 
   // Shows
-  listShows: (params?: Record<string, string | number>) => {
-    const qs = params ? '?' + new URLSearchParams(params as Record<string, string>).toString() : ''
-    return request<any[]>(`/shows${qs}`)
-  },
+  listShows: (params?: Record<string, string | number>) => request<any[]>(`/shows${qs(params)}`),
+  countShows: (params?: Record<string, string | number>) =>
+    request<{ count: number }>(`/shows/count${qs(params)}`),
   getShow: (id: string) => request<any>(`/shows/${id}`),
   createShow: (body: any) => request<any>('/shows', { method: 'POST', body: JSON.stringify(body) }),
   updateShow: (id: string, body: any) =>
@@ -58,10 +67,8 @@ export const api = {
   deleteSeason: (id: string) => request<void>(`/seasons/${id}`, { method: 'DELETE' }),
 
   // Episodes
-  listEpisodes: (params?: Record<string, string | number>) => {
-    const qs = params ? '?' + new URLSearchParams(params as Record<string, string>).toString() : ''
-    return request<any[]>(`/episodes${qs}`)
-  },
+  listEpisodes: (params?: Record<string, string | number>) =>
+    request<any[]>(`/episodes${qs(params)}`),
   getEpisode: (id: string) => request<any>(`/episodes/${id}`),
   createEpisode: (body: any) =>
     request<any>('/episodes', { method: 'POST', body: JSON.stringify(body) }),
@@ -88,7 +95,34 @@ export const api = {
   publishCatalog: () => request<any>('/catalog/publish', { method: 'POST' }),
   getPublishRuns: (skip = 0) => request<any[]>(`/catalog/publish-runs?skip=${skip}&limit=20`),
   getValidationReport: () => request<any>('/admin/validation-report'),
+  getAuditLog: (params?: Record<string, string | number>) => request<any[]>(`/admin/audit-log${qs(params)}`),
   getDiff: (runId: string) => request<any>(`/catalog/diff/${runId}`),
-  rollbackTo: (runId: string) =>
-    request<any>(`/catalog/rollback/${runId}`, { method: 'POST' }),
+  rollbackTo: (runId: string) => request<any>(`/catalog/rollback/${runId}`, { method: 'POST' }),
+
+  // Publish queue
+  listPublishJobs: (status = 'pending') => request<any[]>(`/publish/jobs?status=${status}`),
+  publishJob: (id: string) => request<any>(`/publish/jobs/${id}/publish`, { method: 'POST' }),
+  cancelPublishJob: (id: string) => request<any>(`/publish/jobs/${id}/cancel`, { method: 'POST' }),
+
+  // Publish schedule
+  listSchedule: () => request<any[]>('/publish/schedule'),
+  getPublishSchedule: (from_date?: string, to_date?: string) =>
+    request<any[]>(
+      `/publish/schedule${qs(from_date || to_date ? { from_date, to_date } : undefined)}`
+    ),
+  createSchedule: (body: any) =>
+    request<any>('/publish/schedule', { method: 'POST', body: JSON.stringify(body) }),
+  updateSchedule: (id: string, body: any) =>
+    request<any>(`/publish/schedule/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+  cancelSchedule: (id: string) =>
+    request<any>(`/publish/schedule/${id}/cancel`, { method: 'POST' }),
+
+  // Publish history
+  getPublishHistory: (cursor = 0, limit = 20, params?: Record<string, string>) =>
+    request<{ items: any[]; total: number; cursor: number }>(
+      `/publish/history${qs({ cursor, limit, ...params })}`
+    ),
 }

@@ -19,8 +19,9 @@ from app.services.catalog import build_catalog
 settings = get_settings()
 router = APIRouter(prefix="/catalog", tags=["catalog"])
 
-# Module-level singleton to avoid B008 in function signatures.
-_run_id_path = Path(..., description="ID of a successful publish run to roll back to")
+
+def _catalog_path(name: str = "") -> str:
+    return os.path.join(settings.local_storage_path, name or settings.catalog_filename)
 
 
 # ---------------------------------------------------------------------------
@@ -34,8 +35,7 @@ async def get_catalog(db: DbSession):
 
     The viewer UI reads ONLY this endpoint — never admin endpoints.
     """
-    key = settings.catalog_filename
-    catalog_path = os.path.join(settings.local_storage_path, key)
+    catalog_path = _catalog_path()
 
     if os.path.exists(catalog_path):
         with open(catalog_path) as f:
@@ -120,27 +120,21 @@ async def publish_catalog(
         catalog_json = json.dumps(catalog_dict, indent=2)
 
         live_key = settings.catalog_filename
-        tmp_key = f"{live_key}.tmp"
-        versioned_key = f"{live_key}.v{run.id}.json"
-
-        live_path = os.path.join(settings.local_storage_path, live_key)
-        tmp_path = os.path.join(settings.local_storage_path, tmp_key)
-        versioned_path = os.path.join(settings.local_storage_path, versioned_key)
-        os.makedirs(os.path.dirname(live_path), exist_ok=True)
+        live_path = _catalog_path(live_key)
+        tmp_path = _catalog_path(f"{live_key}.tmp")
+        versioned_path = _catalog_path(f"{live_key}.v{run.id}.json")
+        os.makedirs(os.path.dirname(live_path) or ".", exist_ok=True)
 
         with open(tmp_path, "w") as f:
             f.write(catalog_json)
 
         os.replace(tmp_path, live_path)
-
-        with open(versioned_path, "w") as f:
-            f.write(catalog_json)
+        shutil.copy(live_path, versioned_path)
 
         run.outcome = "success"
         run.shows_published = len(catalog.shows)
         run.episodes_published = sum(
-            len(s.seasons) > 0 and sum(len(se.episodes) for se in s.seasons)
-            for s in catalog.shows
+            len(se.episodes) for s in catalog.shows for se in s.seasons
         )
         run.finished_at = datetime.now(UTC)
         await db.commit()
@@ -177,7 +171,7 @@ async def list_publish_runs(
 async def rollback_to_publish(
     db: DbSession,
     _user: Annotated[object, Depends(require_admin)],
-    run_id: UUID = _run_id_path,
+    run_id: Annotated[UUID, Path(description="ID of a successful publish run to roll back to")],
 ):
     """
     Roll back the live catalogue to a previous successful publish.
@@ -200,11 +194,9 @@ async def rollback_to_publish(
     await db.flush()
 
     live_key = settings.catalog_filename
-    live_path = os.path.join(settings.local_storage_path, live_key)
-    versioned_path = os.path.join(
-        settings.local_storage_path, f"{live_key}.v{run_id}.json"
-    )
-    tmp_path = os.path.join(settings.local_storage_path, f"{live_key}.tmp")
+    live_path = _catalog_path(live_key)
+    versioned_path = _catalog_path(f"{live_key}.v{run_id}.json")
+    tmp_path = _catalog_path(f"{live_key}.tmp")
 
     if not os.path.exists(versioned_path):
         rollback_run.outcome = "failed"
@@ -254,10 +246,8 @@ async def diff_publish(
         )
 
     live_key = settings.catalog_filename
-    live_path = os.path.join(settings.local_storage_path, live_key)
-    versioned_path = os.path.join(
-        settings.local_storage_path, f"{live_key}.v{run_id}.json"
-    )
+    live_path = _catalog_path(live_key)
+    versioned_path = _catalog_path(f"{live_key}.v{run_id}.json")
 
     if not os.path.exists(live_path):
         raise HTTPException(status_code=404, detail="No live catalogue file found.")

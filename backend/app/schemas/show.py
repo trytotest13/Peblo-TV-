@@ -49,3 +49,12 @@ from app.schemas.season import SeasonWithEpisodesRead  # noqa: E402
 
 ShowWithSeasonsRead.model_rebuild()
 ShowWithArtworkRead.model_rebuild()
+
+
+class ShowListItemRead(ShowRead):
+    """Lightweight list payload: show fields plus artwork for table thumbnails."""
+
+    artwork: list["ArtworkRead"] = []
+
+
+ShowListItemRead.model_rebuild()

@@ -19,6 +19,7 @@ import app.models.episode  # noqa
 import app.models.artwork  # noqa
 import app.models.publish_run  # noqa
 import app.models.user  # noqa
+import app.models.show_list  # noqa
 
 config = context.config
 

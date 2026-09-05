@@ -1,0 +1,191 @@
+/* Publish page — dashboard layout, scroll wrappers and popovers.
+   Base tokens, cards, tables, pills and the schedule grid live in index.css. */
+
+/* Queue tab: queue card spans full width, schedule + history side by side
+   underneath. Schedule / History tabs: the single visible panel takes the full
+   width. */
+.pub-dashboard {
+  display: grid;
+  gap: 18px;
+  align-items: start;
+}
+
+.pub-secondary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+/* Grid items must be allowed to shrink below their content's intrinsic width.
+   Without this the wide queue table (min-width: 860px inside .pub-table-scroll)
+   contributes its min-content to the track, so the page scrolls sideways and the
+   card's own scrollbar never engages. The scroll wrappers are plain blocks, not
+   grid/flex items, so they cannot resolve this themselves. */
+.pub-queue-section,
+.pub-secondary-grid {
+  min-width: 0;
+}
+
+.pub-secondary-grid > section {
+  min-width: 0;
+}
+
+.pub-dashboard-queue .pub-secondary-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.pub-dashboard-schedule .pub-secondary-grid,
+.pub-dashboard-history .pub-secondary-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.pub-queue-card,
+.pub-schedule-card,
+.pub-history-card {
+  margin-bottom: 0;
+}
+
+/* ---------- Compact custom Select in card heads (history type filter) ----------
+   The shared .neko-select sizes (60px trigger, 18px text) suit page-level filter
+   bars; inside a dense card head it matches the 32px .btn-sm controls instead. */
+.pub-card-head-actions .neko-select {
+  min-width: 150px;
+  font-size: 13px;
+}
+
+.pub-card-head-actions .neko-select-trigger {
+  height: 32px;
+  padding: 0 10px 0 12px;
+  gap: 8px;
+  border-width: 1px;
+  border-radius: 8px;
+  font-size: 12.5px;
+}
+
+.pub-card-head-actions .neko-select-leading-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+
+.pub-card-head-actions .neko-select-caret svg {
+  width: 14px;
+  height: 14px;
+}
+
+.pub-card-head-actions .neko-select-listbox {
+  top: calc(100% + 6px);
+  padding: 6px;
+  border-width: 1px;
+  border-radius: 10px;
+  max-height: 264px;
+}
+
+.pub-card-head-actions .neko-select-option {
+  padding: 7px 9px;
+  gap: 8px;
+  border-radius: 7px;
+  font-size: 12.5px;
+}
+
+.pub-card-head-actions .neko-select-option-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+
+.pub-card-head-actions .neko-select-check svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* ---------- Horizontal scroll wrappers (tables + week grid) ---------- */
+.pub-table-scroll {
+  overflow-x: auto;
+}
+
+.pub-table-scroll .table {
+  min-width: 860px;
+}
+
+.pub-calendar-scroll {
+  overflow-x: auto;
+}
+
+.pub-calendar-scroll .sched-grid {
+  min-width: 760px;
+}
+
+/* ---------- History date-range popover ---------- */
+.pub-date-filter {
+  position: relative;
+}
+
+.pub-date-filter > summary {
+  cursor: pointer;
+  list-style: none;
+  white-space: nowrap;
+}
+
+.pub-date-filter > summary::-webkit-details-marker {
+  display: none;
+}
+
+.pub-date-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 35;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.pub-date-popover label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--color-muted);
+}
+
+/* ---------- Pagination ellipsis ---------- */
+.page-ellipsis {
+  padding: 0 2px;
+  font-size: 12px;
+  color: var(--color-faint);
+}
+
+/* ---------- History result pills ---------- */
+.run-live {
+  background: rgba(52, 211, 153, 0.1);
+  color: #6ee7b7;
+}
+
+/* Failure detail row keeps its icon aligned with the label */
+.publish-block strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: 13px;
+  color: #f87171;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1100px) {
+  .pub-dashboard-queue .pub-secondary-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pub-card-head-actions .neko-select {
+    min-width: 130px;
+  }
+}

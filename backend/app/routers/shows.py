@@ -3,15 +3,30 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from sqlalchemy import String, func, or_, select
 from sqlalchemy.orm import selectinload
 
 from app.auth.deps import CurrentUser, DbSession, require_editor
 from app.models.show import Show
-from app.schemas.show import ShowCreate, ShowRead, ShowUpdate, ShowWithArtworkRead
+from app.schemas.show import (
+    ShowCreate,
+    ShowListItemRead,
+    ShowRead,
+    ShowUpdate,
+    ShowWithArtworkRead,
+)
 from app.services.audit import log_change
 
 router = APIRouter(prefix="/shows", tags=["shows"])
+
+
+def search_filter(keyword: str):
+    """Match a keyword against title, slug or the serialized categories list."""
+    return or_(
+        Show.title.ilike(f"%{keyword}%"),
+        Show.slug.ilike(f"%{keyword}%"),
+        Show.categories.cast(String).ilike(f"%{keyword}%"),
+    )
 
 
 @router.get("", response_model=list[ShowRead])
@@ -24,16 +39,39 @@ async def list_shows(
     skip: int = 0,
     limit: int = 50,
 ):
-    """List all shows with optional filtering."""
+    """List shows with optional filtering; includes artwork for table thumbnails."""
     stmt = select(Show).offset(skip).limit(limit)
     if section:
         stmt = stmt.where(Show.section == section)
     if status_filter:
         stmt = stmt.where(Show.status == status_filter)
     if search:
-        stmt = stmt.where(Show.title.ilike(f"%{search}%"))
-    result = await db.execute(stmt.order_by(Show.title))
-    return [ShowRead.model_validate(s) for s in result.scalars().all()]
+        keyword = f"%{search}%"
+        # Search across title, slug and categories (match any)
+        stmt = stmt.where(search_filter(keyword))
+    result = await db.execute(stmt.options(selectinload(Show.artwork)).order_by(Show.title))
+    return [ShowListItemRead.model_validate(s) for s in result.scalars().all()]
+
+
+@router.get("/count")
+async def count_shows(
+    db: DbSession,
+    _user: CurrentUser,
+    section: str | None = None,
+    status_filter: str | None = Query(None, alias="status"),
+    search: str | None = None,
+):
+    """Total number of shows matching the same filters — powers pagination footer."""
+    stmt = select(func.count(Show.id))
+    if section:
+        stmt = stmt.where(Show.section == section)
+    if status_filter:
+        stmt = stmt.where(Show.status == status_filter)
+    if search:
+        keyword = f"%{search}%"
+        stmt = stmt.where(search_filter(keyword))
+    result = await db.execute(stmt)
+    return {"count": result.scalar_one()}
 
 
 @router.get("/{show_id}", response_model=ShowWithArtworkRead)

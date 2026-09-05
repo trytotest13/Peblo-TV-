@@ -1,9 +1,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// In Docker, the API service is reachable as 'http://api:8000'.
-// In local dev (npm run dev directly), it's 'http://localhost:8000'.
-const API_TARGET = process.env.VITE_API_PROXY_TARGET || 'http://api:8000'
+// Local dev (npm run dev directly) proxies to the API on localhost:8000.
+// Override with VITE_API_PROXY_TARGET (e.g. 'http://api:8000' inside Docker Compose).
+const API_TARGET = process.env.VITE_API_PROXY_TARGET || 'http://localhost:8000'
 
 export default defineConfig({
   plugins: [react()],
@@ -17,5 +17,11 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./src/test/setup.ts'],
+    css: false,
   },
 })

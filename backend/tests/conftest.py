@@ -24,6 +24,7 @@ from sqlalchemy.pool import StaticPool
 import app.models.artwork  # noqa
 import app.models.audit_log  # noqa
 import app.models.episode  # noqa
+import app.models.publish_job  # noqa
 import app.models.publish_run  # noqa
 import app.models.season  # noqa
 import app.models.show  # noqa

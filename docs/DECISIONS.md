@@ -86,8 +86,26 @@ Where it bites:
   There's no cloud to deploy to, and the actual cloud commands depend
   on the platform. I scaffolded the image-build step so the deploy
   diff is small.
+- **React Hook Form + Zod** — CMS forms use hand-rolled `useState`
+  validation; `react-hook-form`, `zod`, `@hookform/resolvers`, and
+  `clsx` were removed from `cms/package.json` as unused deps.
 
-## 5b. Stretch goals (implemented)
+## 5b. Migrations and env validation
+
+- **Alembic, not `create_all()`** — app startup runs `alembic upgrade
+  head` in `docker-entrypoint.sh`, then idempotent seed scripts.
+  `Base.metadata.create_all()` appears only in `tests/conftest.py`
+  (in-memory SQLite fixtures). Migrations keep deploy history explicit
+  and reviewable; `create_all()` can't roll back a bad deploy.
+- **Fail-fast env validation** — `JWT_SECRET` and
+  `BOOTSTRAP_ADMIN_PASSWORD` have no production defaults:
+  `docker-compose.yml` marks them `:?` (required), and `get_settings()`
+  refuses to boot in `APP_ENV=production` with the shipped dev values.
+  A forgotten secret is a loud startup error, not a silently insecure
+  service. Dev-only defaults exist so `docker compose up` works for a
+   reviewer with just `.env.example` copied over.
+
+## 5c. Stretch goals (implemented)
 
 All three optional stretch goals were implemented:
 
@@ -101,6 +119,46 @@ All three optional stretch goals were implemented:
   to `audit_logs` with the actor's email and before/after JSON. Available
   at `GET /admin/audit-log` with optional filters by entity type, entity ID,
   or actor email.
+
+## 5d. Publish queue, schedule, history (implemented)
+
+The `/publish` CMS page grew three tabs backed by `app/routers/publish.py`
+(tables `publish_jobs` + `publish_schedules`, migration `0004`):
+
+- **Validation gate, not confirmation dialogs.** `POST /publish/jobs/{id}/publish`
+  recomputes validation live from the validation report and returns 409 with
+  the issue list when blocked. The button being disabled is UX; the 409 is
+  the safety. No confirm dialog on publish — the gate is the safety.
+- **Queue auto-seeds from draft content.** Draft shows/episodes are, by
+  definition, waiting to publish, so `GET /publish/jobs` creates a pending
+  row per draft (idempotent, never duplicates). Validation is computed on
+  read, never stored — stored status only tracks lifecycle
+  (validated/issues/publishing/published/cancelled/failed).
+- **Editors can publish through the queue.** The raw catalogue push
+  (`POST /catalog/publish`) stays admin-only, but queue/schedule/history
+  are editor+ — the content team ships without engineering help, and the
+  validation gate keeps them from shipping broken content.
+- **Inline execution, no worker.** Publish runs inside the request: flip
+  status + audit row, then reuse the catalogue-push function so file-writing
+  stays in one place. A Redis/ARQ worker is still the right call once
+  publishes get slow (see below) — this is marked as the known ceiling.
+- **Schedule sweeps on read.** Past-due rows execute when the schedule is
+  fetched; failures stay scheduled with `last_error` instead of silently
+  flipping. No cron needed at this scale.
+- **History unions both sources.** Catalogue runs (`publish_runs`) and
+  terminal jobs appear newest-first with cursor pagination; failed rows
+  carry `error_detail`.
+
+## 5e. What I'd do with more time
+
+- **Background worker (Redis/ARQ)** — move publish off the request
+  cycle so large catalogues can't time out the admin's HTTP call.
+- **Rate limiting** — per-IP throttling on `/auth/login` and
+  `/catalog/search` (e.g. slowapi) to blunt brute-force and scrape loops.
+- **Production frontend image** — multi-stage Dockerfile serving the
+  Vite build via nginx instead of the dev server.
+- **Playwright smoke test** — one end-to-end pass (login → publish →
+  viewer shows new content) in CI against the composed stack.
 
 ## 6. AI tools used
 
@@ -131,3 +189,12 @@ fields, FastAPI router shape) and rewrote or rejected:
 - (Part B + C: ~2 hours — see their READMEs)
 - Phase 2 polish (search fixes, CMS debounce, CI lint jobs): 30 minutes
 - Stretch goals (versioned catalogue, diff, audit log, tests): 45 minutes
+
+## 7. Production Readiness & Legal Audit
+
+I performed a systematic production-readiness audit across the CMS, Viewer, and Backend:
+
+- **Centralized State Components**: Created `<StatePage>`, `<EmptyState>`, `<ErrorState>`, `<LoadingState>`, `<OfflineBanner>`, `<NotFoundPage>`, and `<ErrorBoundary>` components for both CMS and Viewer apps.
+- **Legal & Public Pages**: Added Viewer routes for `/about`, `/terms`, `/privacy` (marked for owner legal review), `/cookies`, `/accessibility`, `/help`, and `/report`. Connected `/report` to a real FastAPI backend router (`POST /report`) with Pydantic validation and unit tests.
+- **CMS Staff Pages**: Added `/settings` (Account Settings) and `/audit-log` (Audit Log viewer backed by backend `GET /admin/audit-log`).
+- **Child Privacy Compliance (DPDP Act)**: Avoided invented compliance statements. Created `docs/PRODUCTION_PAGE_AUDIT.md` documenting data inventory and consolidated missing owner inputs.

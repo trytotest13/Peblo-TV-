@@ -4,15 +4,15 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: peblo
-      POSTGRES_PASSWORD: peblo
-      POSTGRES_DB: peblo_tv
+      POSTGRES_USER: ${POSTGRES_USER:-peblo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-peblo}
+      POSTGRES_DB: ${POSTGRES_DB:-peblo_tv}
     ports:
       - "5432:5432"
     volumes:
       - peblo_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U peblo"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-peblo}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -23,13 +23,20 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql+asyncpg://peblo:peblo@db:5432/peblo_tv
-      SYNC_DATABASE_URL: postgresql+psycopg2://peblo:peblo@db:5432/peblo_tv
-      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      # Database — credentials from .env (defaults match docker-compose .env)
+      POSTGRES_USER: ${POSTGRES_USER:-peblo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-peblo}
+      POSTGRES_DB: ${POSTGRES_DB:-peblo_tv}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-peblo}:${POSTGRES_PASSWORD:-peblo}@db:5432/${POSTGRES_DB:-peblo_tv}
+      SYNC_DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-peblo}:${POSTGRES_PASSWORD:-peblo}@db:5432/${POSTGRES_DB:-peblo_tv}
+      # Secrets — MUST be set in .env for production (no hardcoded defaults)
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:?BOOTSTRAP_ADMIN_PASSWORD must be set in .env}
+      # App config
+      APP_ENV: development
       STORAGE_BACKEND: local
       LOCAL_STORAGE_PATH: /app/storage
-      BOOTSTRAP_ADMIN_EMAIL: admin@peblo.local
-      BOOTSTRAP_ADMIN_PASSWORD: admin123
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-admin@peblo.local}
     ports:
       - "8000:8000"
     volumes:
@@ -41,7 +48,10 @@ services:
     ports:
       - "3000:3000"
     environment:
-      VITE_API_URL: http://localhost:8000
+      VITE_API_URL: ${CMS_API_URL:-http://localhost:8000}
+    volumes:
+      - ./cms:/app
+      - /app/node_modules
     depends_on:
       - api
 
@@ -50,7 +60,10 @@ services:
     ports:
       - "5173:5173"
     environment:
-      VITE_API_URL: http://localhost:8000
+      VITE_API_URL: ${VIEWER_API_URL:-http://localhost:8000}
+    volumes:
+      - ./viewer:/app
+      - /app/node_modules
     depends_on:
       - api
 

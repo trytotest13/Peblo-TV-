@@ -11,17 +11,16 @@ from sqlalchemy import select
 import app.models.artwork  # noqa: F401
 import app.models.audit_log  # noqa: F401
 import app.models.episode  # noqa: F401
+import app.models.publish_job  # noqa: F401
 import app.models.publish_run  # noqa: F401
 import app.models.season  # noqa: F401
-
-# Import models so Base.metadata sees them when we run create_all
 import app.models.show  # noqa: F401
-import app.models.user  # noqa: F401
+import app.models.show_list  # noqa: F401
 from app.auth.security import hash_password
 from app.config import get_settings
-from app.db import AsyncSessionLocal, Base, async_engine
+from app.db import AsyncSessionLocal, async_engine
 from app.models.user import User
-from app.routers import admin, artwork, auth, catalog, episodes, seasons, shows
+from app.routers import admin, artwork, auth, catalog, episodes, publish, report, seasons, show_list, shows
 
 settings = get_settings()
 logging.basicConfig(level=settings.log_level)
@@ -46,10 +45,7 @@ async def bootstrap_admin():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup: create tables and bootstrap admin. Shutdown: dispose engine."""
-    # Create all tables (in dev). In production, alembic migrations are used.
-    async with async_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    """Bootstrap the admin and dispose the database engine on shutdown."""
     await bootstrap_admin()
     yield
     await async_engine.dispose()
@@ -61,10 +57,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS — allow the CMS and viewer frontends
+# CORS — explicit allowlist from settings (no wildcards in production).
+_origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -89,4 +86,7 @@ app.include_router(seasons.router)
 app.include_router(episodes.router)
 app.include_router(artwork.router)
 app.include_router(catalog.router)
+app.include_router(publish.router)
 app.include_router(admin.router)
+app.include_router(show_list.router)
+app.include_router(report.router)

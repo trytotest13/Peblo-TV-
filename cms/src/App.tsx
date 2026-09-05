@@ -7,6 +7,11 @@ import ShowsList from './pages/ShowsList'
 import ShowDetail from './pages/ShowDetail'
 import EpisodesList from './pages/EpisodesList'
 import Publish from './pages/Publish'
+import Categories from './pages/Categories'
+import Languages from './pages/Languages'
+import AccountSettings from './pages/AccountSettings'
+import AuditLog from './pages/AuditLog'
+import { ErrorBoundary, NotFoundPage } from './components/StateComponents'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('peblo_token')
@@ -27,29 +32,43 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<Navigate to="/shows" replace />} />
-        <Route path="shows" element={<ShowsList />} />
-        <Route path="shows/:id" element={<ShowDetail />} />
-        <Route path="episodes" element={<EpisodesList />} />
+    <ErrorBoundary>
+      <Routes>
+        <Route path="/login" element={<Login />} />
         <Route
-          path="publish"
+          path="/"
           element={
-            <AdminRoute>
-              <Publish />
-            </AdminRoute>
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
           }
-        />
-      </Route>
-    </Routes>
+        >
+          <Route index element={<Navigate to="/shows" replace />} />
+          <Route path="shows" element={<ShowsList />} />
+          <Route path="shows/:id" element={<ShowDetail />} />
+          <Route path="episodes" element={<EpisodesList />} />
+          <Route path="categories" element={<Categories />} />
+          <Route path="languages" element={<Languages />} />
+          <Route path="settings" element={<AccountSettings />} />
+          <Route
+            path="audit-log"
+            element={
+              <AdminRoute>
+                <AuditLog />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="publish"
+            element={
+              <AdminRoute>
+                <Publish />
+              </AdminRoute>
+            }
+          />
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
+      </Routes>
+    </ErrorBoundary>
   )
 }

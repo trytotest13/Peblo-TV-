@@ -61,18 +61,6 @@ class CatalogDocument(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Search
-# ---------------------------------------------------------------------------
-
-
-class CatalogSearchParams(BaseModel):
-    q: str | None = None          # matches title / synopsis / category
-    section: str | None = None
-    category: str | None = None
-    language: str | None = None
-
-
-# ---------------------------------------------------------------------------
 # Publish job
 # ---------------------------------------------------------------------------
 

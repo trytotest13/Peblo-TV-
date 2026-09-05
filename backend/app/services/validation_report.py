@@ -17,6 +17,9 @@ from app.schemas.catalog import ValidationIssue, ValidationReport
 async def build_validation_report(db: AsyncSession) -> ValidationReport:
     issues: list[ValidationIssue] = []
 
+    def missing(artworks, art_type: str) -> bool:
+        return not any(a.artwork_type == art_type for a in artworks)
+
     # All shows (regardless of status) — we want to find issues even on drafts
     show_stmt = (
         select(Show)
@@ -42,7 +45,7 @@ async def build_validation_report(db: AsyncSession) -> ValidationReport:
 
         # 2. Show-level artwork (banner for hero)
         for art_type in ARTWORK_TYPES:
-            if not any(a.artwork_type == art_type for a in show.artwork):
+            if missing(show.artwork, art_type):
                 issues.append(
                     ValidationIssue(
                         show_slug=show.slug,
@@ -72,9 +75,7 @@ async def build_validation_report(db: AsyncSession) -> ValidationReport:
 
                 # 4. Episode can't be published without artwork (poster, banner, thumbnail)
                 for art_type in ARTWORK_TYPES:
-                    if ep.status == "published" and not any(
-                        a.artwork_type == art_type for a in ep.artwork
-                    ):
+                    if ep.status == "published" and missing(ep.artwork, art_type):
                         issues.append(
                             ValidationIssue(
                                 show_slug=show.slug,

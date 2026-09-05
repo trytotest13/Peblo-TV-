@@ -51,23 +51,14 @@ async def upload_artwork(
             },
         )
 
-    if show_id is None and episode_id is None:
+    if (show_id is None) == (episode_id is None):
         raise HTTPException(
             status_code=400,
             detail={
                 "artwork_type": artwork_type,
                 "errors": [
-                    "Provide either show_id or episode_id, not both or neither."
+                    "Provide exactly one of show_id or episode_id."
                 ],
-            },
-        )
-
-    if show_id is not None and episode_id is not None:
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "artwork_type": artwork_type,
-                "errors": ["Provide only one of show_id or episode_id, not both."],
             },
         )
 

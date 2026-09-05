@@ -28,8 +28,8 @@ class StorageBackend:
 # ---------------------------------------------------------------------------
 
 class LocalStorage(StorageBackend):
-    def __init__(self, base_path: str = ""):
-        self.base_path = Path(base_path or settings.local_storage_path)
+    def __init__(self):
+        self.base_path = Path(settings.local_storage_path)
         self.base_path.mkdir(parents=True, exist_ok=True)
 
     async def save(self, key: str, file_bytes: bytes) -> str:
@@ -54,19 +54,12 @@ class LocalStorage(StorageBackend):
 # ---------------------------------------------------------------------------
 
 class R2Storage(StorageBackend):
-    def __init__(
-        self,
-        account_id: str = "",
-        access_key: str = "",
-        secret_key: str = "",
-        bucket: str = "",
-        public_base: str = "",
-    ):
-        self.account_id = account_id or settings.r2_account_id
-        self.access_key = access_key or settings.r2_access_key_id
-        self.secret_key = secret_key or settings.r2_secret_access_key
-        self.bucket = bucket or settings.r2_bucket
-        self.public_base = public_base or settings.r2_public_base_url
+    def __init__(self):
+        self.account_id = settings.r2_account_id
+        self.access_key = settings.r2_access_key_id
+        self.secret_key = settings.r2_secret_access_key
+        self.bucket = settings.r2_bucket
+        self.public_base = settings.r2_public_base_url
 
         endpoint = f"https://{self.account_id}.r2.cloudflarestorage.com"
         self.client = boto3.client(
@@ -91,22 +84,12 @@ class R2Storage(StorageBackend):
         return f"{self.public_base}/{key}"
 
 
-# ---------------------------------------------------------------------------
-# Factory
-# ---------------------------------------------------------------------------
-
-def get_storage() -> StorageBackend:
-    backend = settings.storage_backend.lower()
-    if backend == "r2":
-        return R2Storage()
-    return LocalStorage()
-
-
 # Convenience singleton
 _storage: StorageBackend | None = None
 
 def get_storage_instance() -> StorageBackend:
     global _storage
     if _storage is None:
-        _storage = get_storage()
+        backend = settings.storage_backend.lower()
+        _storage = R2Storage() if backend == "r2" else LocalStorage()
     return _storage
