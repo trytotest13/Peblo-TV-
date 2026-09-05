@@ -71,7 +71,7 @@ export default function Login() {
         </form>
 
         <div style={{ marginTop: 16, fontSize: 12, color: 'var(--color-muted)' }}>
-          Default admin: <code>admin@peblo.local</code> / <code>admin123</code>
+          Default admin: <code>admin@peblo.local</code> / <code>PebloAdmin#2026!Secure</code>
         </div>
       </div>
     </div>
