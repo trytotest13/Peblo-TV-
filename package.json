@@ -1,0 +1,7 @@
+{
+  "name": "peblo-tv",
+  "private": true,
+  "scripts": {
+    "build": "cd viewer && npm install && npm run build"
+  }
+}
