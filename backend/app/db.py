@@ -23,7 +23,7 @@ class Base(DeclarativeBase):
 _settings = get_settings()
 
 async_engine = create_async_engine(
-    _settings.database_url,
+    _settings.async_database_url,
     echo=False,
     pool_pre_ping=True,
 )

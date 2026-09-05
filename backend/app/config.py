@@ -1,6 +1,5 @@
 """Configuration settings for Peblo TV backend."""
 import logging
-import os
 from functools import lru_cache
 from typing import Literal
 
@@ -32,6 +31,28 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = "postgresql+asyncpg://peblo:peblo@localhost:5432/peblo_tv"
+
+    @property
+    def async_database_url(self) -> str:
+        url = self.database_url
+        if url.startswith("postgres://"):
+            return url.replace("postgres://", "postgresql+asyncpg://", 1)
+        if url.startswith("postgresql://") and not url.startswith("postgresql+"):
+            return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return url
+
+    @property
+    def sync_database_url(self) -> str:
+        url = self.database_url
+        if url.startswith("postgresql+asyncpg://"):
+            return url.replace("postgresql+asyncpg://", "postgresql+psycopg2://", 1)
+        if url.startswith("sqlite+aiosqlite://"):
+            return url.replace("sqlite+aiosqlite://", "sqlite://", 1)
+        if url.startswith("postgres://"):
+            return url.replace("postgres://", "postgresql+psycopg2://", 1)
+        if url.startswith("postgresql://") and not url.startswith("postgresql+"):
+            return url.replace("postgresql://", "postgresql+psycopg2://", 1)
+        return url
 
     # Auth
     jwt_secret: str = _DEV_DEFAULTS["jwt_secret"]
