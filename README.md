@@ -162,4 +162,5 @@ cd viewer && npx tsc --noEmit && npx vitest run
 - **Versioned Catalogue & Rollback**: Each successful publish archives a snapshot (`catalog.json.v{run_id}.json`). `POST /catalog/rollback/{run_id}` atomically restores any historical version.
 - **Publish Diff**: `GET /catalog/diff/{run_id}` computes added, updated, and removed shows between the active catalogue and a target publish run.
 - **Audit Logging**: All show, season, and episode mutations record before/after JSON snapshots to `audit_logs` table (`GET /admin/audit-log`).#   P e b l o - T V -  
+ #   P e b l o - T V -  
  
