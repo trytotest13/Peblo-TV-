@@ -21,11 +21,21 @@ class Base(DeclarativeBase):
 
 
 _settings = get_settings()
+_async_url = _settings.async_database_url
+
+# Supabase Supavisor runs in transaction mode and cannot hold prepared
+# statements — disable asyncpg's statement cache, but only on pooler URLs.
+_connect_args = (
+    {"statement_cache_size": 0}
+    if ":6543" in _async_url or "pooler" in _async_url
+    else {}
+)
 
 async_engine = create_async_engine(
-    _settings.async_database_url,
+    _async_url,
     echo=False,
     pool_pre_ping=True,
+    connect_args=_connect_args,
 )
 
 AsyncSessionLocal = async_sessionmaker(
