@@ -9,10 +9,10 @@ import sys
 from pathlib import Path
 
 # Force test settings BEFORE any app imports
-os.environ.setdefault("APP_ENV", "test")
-os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
-os.environ.setdefault("SYNC_DATABASE_URL", "sqlite:///:memory:")
-os.environ.setdefault("JWT_SECRET", "test-secret")
+os.environ["APP_ENV"] = "test"
+os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
+os.environ["SYNC_DATABASE_URL"] = "sqlite:///:memory:"
+os.environ["JWT_SECRET"] = "test-secret"
 
 # Make backend/ importable
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -28,6 +28,7 @@ import app.models.publish_job  # noqa
 import app.models.publish_run  # noqa
 import app.models.season  # noqa
 import app.models.show  # noqa
+import app.models.show_list  # noqa
 import app.models.user  # noqa
 from app.db import Base
 
