@@ -25,6 +25,6 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD-SHELL curl -f http://localhost:${PORT:-8000}/health || exit 1
+    CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
 
 CMD ["docker-entrypoint.sh"]
