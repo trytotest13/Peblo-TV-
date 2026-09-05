@@ -1,5 +1,6 @@
 // Centralised API client with JWT auth
-const BASE = import.meta.env.VITE_API_URL || '/api'
+const rawBase = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '/api'
+const BASE = rawBase.replace(/\/+$/, '')
 
 function getToken() {
   return localStorage.getItem('peblo_token')

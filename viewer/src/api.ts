@@ -1,6 +1,7 @@
 import { DEFAULT_USER, getStoredUser, saveStoredUser, setSessionToken } from './prefs'
 
-const BASE = import.meta.env.VITE_API_URL || '/api'
+const rawBase = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '/api'
+const BASE = rawBase.replace(/\/+$/, '')
 
 const authHeaders = (): HeadersInit => {
   const token = localStorage.getItem('peblo_token')
@@ -153,10 +154,12 @@ export async function fetchMe(): Promise<ViewerUser> {
 export const IMG = (path: string | undefined | null): string => {
   if (!path) return ''
   if (path.startsWith('http://') || path.startsWith('https://')) return path
-  const base = (import.meta.env.VITE_CDN_URL || import.meta.env.VITE_API_URL || '').replace(
-    /\/+$/,
+  const base = (
+    import.meta.env.VITE_CDN_URL ||
+    import.meta.env.VITE_API_URL ||
+    import.meta.env.VITE_API_BASE_URL ||
     ''
-  )
+  ).replace(/\/+$/, '')
   return base
     ? new URL(path.startsWith('/') ? path : `/media/${path}`, base).href
     : path.startsWith('/')
