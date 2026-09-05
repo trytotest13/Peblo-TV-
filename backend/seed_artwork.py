@@ -20,7 +20,9 @@ from app.models.episode import Episode
 from app.models.show import Show
 
 ROOT = Path(__file__).parent
-DOCS = ROOT / "documaent"
+DOCS = ROOT / "fixtures"
+if not DOCS.exists() or not (DOCS / "poster_good.jpg").exists():
+    DOCS = ROOT / "documaent"
 if not DOCS.exists():
     DOCS = ROOT.parent / "documaent"
 

@@ -47,5 +47,27 @@ async def main():
 asyncio.run(main())
 "
 
+echo "[entrypoint] Publishing catalog JSON..."
+python -c "
+import asyncio
+import json
+import os
+from app.db import AsyncSessionLocal
+from app.services.catalog import build_catalog
+from app.config import get_settings
+
+async def main():
+    async with AsyncSessionLocal() as db:
+        settings = get_settings()
+        cat = await build_catalog(db)
+        live_path = os.path.join(settings.local_storage_path, settings.catalog_filename)
+        os.makedirs(os.path.dirname(live_path) or '.', exist_ok=True)
+        with open(live_path, 'w') as f:
+            json.dump(cat.model_dump(mode='json'), f, indent=2)
+        print(f'[entrypoint] Catalog published with {len(cat.shows)} shows.')
+
+asyncio.run(main())
+"
+
 echo "[entrypoint] Starting API..."
 exec uvicorn app.main:app --host 0.0.0.0 --port "${PORT:-8000}"

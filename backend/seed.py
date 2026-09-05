@@ -18,13 +18,15 @@ from app.models.season import Season
 from app.models.show import Show
 
 ROOT = Path(__file__).parent
-# In Docker, /app/documaent is mounted from host's ./documaent
-# In local dev, look one level up from backend/
-SEED_FILE = ROOT / "documaent" / "seed_shows.json"
+SEED_FILE = ROOT / "fixtures" / "seed_shows.json"
+if not SEED_FILE.exists():
+    SEED_FILE = ROOT / "documaent" / "seed_shows.json"
 if not SEED_FILE.exists():
     SEED_FILE = ROOT.parent / "documaent" / "seed_shows.json"
 
-REFERENCE_FILE = ROOT / "documaent" / "reference.json"
+REFERENCE_FILE = ROOT / "fixtures" / "reference.json"
+if not REFERENCE_FILE.exists():
+    REFERENCE_FILE = ROOT / "documaent" / "reference.json"
 if not REFERENCE_FILE.exists():
     REFERENCE_FILE = ROOT.parent / "documaent" / "reference.json"
 
