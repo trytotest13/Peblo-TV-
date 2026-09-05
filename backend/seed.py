@@ -35,6 +35,10 @@ def build_slug(show_title: str, season: int, episode_num: int, language: str) ->
 
 
 async def seed():
+    if not SEED_FILE.exists() or not REFERENCE_FILE.exists():
+        print(f"[seed] Fixtures file not found at {SEED_FILE} or {REFERENCE_FILE}. Skipping seed.")
+        return
+
     with open(SEED_FILE) as f:
         seed_data = json.load(f)
 

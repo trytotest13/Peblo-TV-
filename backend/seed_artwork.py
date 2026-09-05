@@ -86,6 +86,10 @@ async def seed_artwork_for_episode(db: AsyncSession, episode: Episode):
 
 
 async def main():
+    if not DOCS.exists():
+        print(f"[seed_artwork] Fixtures directory {DOCS} not found. Skipping artwork seeding.")
+        return
+
     async with AsyncSessionLocal() as db:
         shows = (await db.execute(select(Show))).scalars().all()
         episodes = (await db.execute(select(Episode))).scalars().all()
